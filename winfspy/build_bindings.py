@@ -3,6 +3,7 @@ import re
 import sys
 from cffi import FFI
 
+
 # see: https://docs.python.org/3/library/platform.html#platform.architecture
 is_64bits = sys.maxsize > 2 ** 32
 
@@ -17,21 +18,21 @@ WINFSP_DIR = get_winfsp_dir()
 def strip_by_shaif(src):
     kept_src = []
     skipping = 0
-    for line_count, line in enumerate(src.split('\n')):
-        requirement = re.match(r'^#if(.*)', line)
+    for line_count, line in enumerate(src.split("\n")):
+        requirement = re.match(r"^#if(.*)", line)
         if requirement:
             # TODO: find a way to get WinFSP version...
-            if not eval(requirement.groups()[0], {}, {'WINFSP_VERSION': 0}):
+            if not eval(requirement.groups()[0], {}, {"WINFSP_VERSION": 0}):
                 skipping += 1
             continue
-        elif re.match(r'^#endif', line):
+        elif re.match(r"^#endif", line):
             skipping -= 1
-            assert skipping >= 0, f'Error at line {line_count}: {line}'
+            assert skipping >= 0, f"Error at line {line_count}: {line}"
             continue
         if not skipping:
             kept_src.append(line)
-    assert skipping == 0, '#if and #endif not equally balanced'
-    return '\n'.join(kept_src)
+    assert skipping == 0, "#if and #endif not equally balanced"
+    return "\n".join(kept_src)
 
 
 ffibuilder = FFI()

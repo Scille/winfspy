@@ -25,4 +25,6 @@ build_script:
 test_script:
   # Uncomment this for RDP debug
   # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+  # Only print output if check failed
+  - OUT=$(2>&1 black setup.py tests winfspy --check) || (echo $OUT; $(exit 1))
   - py.test tests/ -vvv

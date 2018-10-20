@@ -9,9 +9,7 @@ from setuptools import setup, find_packages
 os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
 
-test_requirements = [
-    "pytest==3.8.0",
-]
+test_requirements = ["pytest==3.8.0", "black==18.9b0"]
 
 
 setup(
@@ -30,11 +28,7 @@ setup(
     packages=find_packages(),
     install_requires=["cffi>=1.0.0"],
     setup_requires=["cffi>=1.0.0"],
-    cffi_modules=[
-        "./winfspy/build_bindings.py:ffibuilder",
-    ],
+    cffi_modules=["./winfspy/build_bindings.py:ffibuilder"],
     test_requirements=test_requirements,
-    extras_require={
-        'dev': test_requirements
-    }
+    extras_require={"dev": test_requirements},
 )
