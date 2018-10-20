@@ -8,7 +8,9 @@ from setuptools import setup, find_packages
 
 os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
-exec(open("winfspy/_version.py", encoding="utf-8").read())
+
+exec(open("src/winfspy/_version.py", encoding="utf-8").read())
+
 
 test_requirements = ["pytest==3.8.0", "black==18.9b0"]
 
@@ -26,10 +28,12 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
     ],
-    packages=find_packages(),
+    package_dir={"": "src"},
+    packages=find_packages(where="src", exclude=["_cffi_src", "_cffi_src.*"]),
     install_requires=["cffi>=1.0.0"],
     setup_requires=["cffi>=1.0.0"],
-    cffi_modules=["./winfspy/build_bindings.py:ffibuilder"],
-    test_requirements=test_requirements,
+    cffi_modules=["./src/_cffi_src/build_bindings.py:ffibuilder"],
     extras_require={"dev": test_requirements},
+    # for cffi
+    zip_safe=False,
 )

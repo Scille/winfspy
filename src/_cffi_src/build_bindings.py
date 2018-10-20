@@ -3,6 +3,7 @@ import re
 import sys
 from cffi import FFI
 
+# from ._utils import get_winfsp_dir
 
 # see: https://docs.python.org/3/library/platform.html#platform.architecture
 is_64bits = sys.maxsize > 2 ** 32
@@ -10,8 +11,8 @@ is_64bits = sys.maxsize > 2 ** 32
 
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
-# import `get_winfsp_dir` the violent way to avoid dependency on __init__.py
-exec(open(f"{BASEDIR}/utils.py").read())
+# import `get_winfsp_dir` the violent way given winfspy cannot be loaded yet
+exec(open(f"{BASEDIR}/../winfspy/utils.py").read())
 WINFSP_DIR = get_winfsp_dir()
 
 
