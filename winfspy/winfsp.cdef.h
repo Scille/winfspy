@@ -196,12 +196,14 @@ typedef struct _FSP_FILE_SYSTEM_INTERFACE
     NTSTATUS (*GetDirInfoByName)(FSP_FILE_SYSTEM *FileSystem,
         PVOID FileContext, PWSTR FileName,
         FSP_FSCTL_DIR_INFO *DirInfo);
+#if WINFSP_VERSION >= 1.4
     NTSTATUS (*Control)(FSP_FILE_SYSTEM *FileSystem,
         PVOID FileContext, UINT32 ControlCode,
         PVOID InputBuffer, ULONG InputBufferLength,
         PVOID OutputBuffer, ULONG OutputBufferLength, PULONG PBytesTransferred);
     NTSTATUS (*SetDelete)(FSP_FILE_SYSTEM *FileSystem,
         PVOID FileContext, PWSTR FileName, BOOLEAN DeleteFile);
+#endif
 
     ...;
 
