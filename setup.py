@@ -25,7 +25,10 @@ setup(
     author_email="emmanuel.leblond@gmail.com",
     classifiers=[
         "Development Status :: 4 - Beta",
+        "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "License :: OSI Approved :: BSD License",
     ],
     package_dir={"": "src"},
