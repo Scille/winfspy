@@ -8,13 +8,14 @@ from setuptools import setup, find_packages
 
 os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
+exec(open("winfspy/_version.py", encoding="utf-8").read())
 
 test_requirements = ["pytest==3.8.0", "black==18.9b0"]
 
 
 setup(
     name="winfspy",
-    version="0.1",
+    version=__version__,
     description="CFFI bindings for WinFSP",
     long_description=open("README.rst", "rt").read(),
     url="https://github.com/Scille/winfspy",
