@@ -179,6 +179,7 @@ typedef struct {
       PVOID FileContext, PWSTR FileName,
       FSP_FSCTL_DIR_INFO * DirInfo);
 
+#if WINFSP_VERSION >= 1.4
     NTSTATUS( * Control)(FSP_FILE_SYSTEM * FileSystem,
       PVOID FileContext, UINT32 ControlCode,
       PVOID InputBuffer, ULONG InputBufferLength,
@@ -186,6 +187,7 @@ typedef struct {
 
     NTSTATUS( * SetDelete)(FSP_FILE_SYSTEM * FileSystem,
       PVOID FileContext, PWSTR FileName, BOOLEAN DeleteFile);
+#endif
 
     ...;
 
