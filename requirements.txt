@@ -1,4 +1,1 @@
-# Hack for wheelwright...
-pytest==3.8.0
-black==18.9b0
 cffi>=1.0.0
