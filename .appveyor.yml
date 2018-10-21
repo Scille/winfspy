@@ -21,9 +21,7 @@ build_script:
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python -m pip install --upgrade pip
   - pip install -r requirements-dev.txt
-  - pip install -r requirements.txt
-  - python setup.py bdist_wheel
-  - ps: pip install dist/*.whl
+  - pip install .
 
 test_script:
   # Uncomment this for RDP debug
@@ -31,6 +29,9 @@ test_script:
   # Only print output if check failed
   - black setup.py tests src --check
   - py.test tests/ -vvv
+
+after_test:
+  - python setup.py bdist_wheel
 
 artifacts:
   path: 'dist/*.whl'
