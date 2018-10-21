@@ -12,7 +12,7 @@ os.chdir(os.path.dirname(sys.argv[0]) or ".")
 exec(open("src/winfspy/_version.py", encoding="utf-8").read())
 
 
-requirements = open('requirements.txt').read().split('\n')
+requirements = open("requirements.txt").read().split("\n")
 
 
 setup(

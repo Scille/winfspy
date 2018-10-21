@@ -21,8 +21,9 @@ build_script:
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python -m pip install --upgrade pip
   - pip install -r requirements-dev.txt
+  - pip install -r requirements.txt
   - python setup.py bdist_wheel
-  - pip install dist/*.whl
+  - ps: pip install dist/*.whl
 
 test_script:
   # Uncomment this for RDP debug
