@@ -3,7 +3,6 @@ import re
 import sys
 from cffi import FFI
 
-# from ._utils import get_winfsp_dir
 
 # see: https://docs.python.org/3/library/platform.html#platform.architecture
 is_64bits = sys.maxsize > 2 ** 32
@@ -52,6 +51,11 @@ ffibuilder.set_source(
 
 with open(BASEDIR + "/winfsp.cdef.h") as fd:
     ffibuilder.cdef(strip_by_shaif(fd.read()))
+
+ffibuilder.cdef("""
+    extern "Python" NTSTATUS SvcStart(FSP_SERVICE *Service, ULONG argc, PWSTR *argv);
+    extern "Python" NTSTATUS SvcStop(FSP_SERVICE *Service);
+""")
 
 
 if __name__ == "__main__":

@@ -10,3 +10,14 @@ from .utils import get_winfsp_dir
 os.environ["PATH"] = f"{get_winfsp_dir('bin')};{os.environ.get('PATH')}"
 
 from ._bindings import ffi, lib
+
+STATUS_NOT_IMPLEMENTED = 0xC0000002
+
+@ffi.def_extern()
+def SvcStart(Service, argc, argv):
+    return STATUS_NOT_IMPLEMENTED
+
+
+@ffi.def_extern()
+def SvcStop(Service):
+    return STATUS_NOT_IMPLEMENTED
