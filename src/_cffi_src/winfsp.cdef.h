@@ -52,6 +52,15 @@ typedef struct {
 typedef FILETIME* PFILETIME;
 
 
+
+HANDLE GetStdHandle(DWORD nStdHandle);
+enum {
+    STD_INPUT_HANDLE = -10,
+    STD_OUTPUT_HANDLE = -11,
+    STD_ERROR_HANDLE = -12
+};
+
+
 /******************************************************
  *                WinFSP fsctl.h stuff                *
  ******************************************************/
@@ -100,7 +109,9 @@ typedef struct {
     UINT32 IrpTimeout;                  /* pending IRP timeout (millis; 1 min - 10 min) */
     UINT32 IrpCapacity;                 /* maximum number of pending IRP's (100 - 1000)*/
     UINT32 FileInfoTimeout;             /* FileInfo/Security/VolumeInfo timeout (millis) */
+
     // Bitfields not supported by cffi...
+
     // /* FILE_FS_ATTRIBUTE_INFORMATION::FileSystemAttributes */
     // UINT32 CaseSensitiveSearch:1;       /* file system supports case-sensitive file names */
     // UINT32 CasePreservedNames:1;        /* file system preserves the case of file names */
@@ -125,8 +136,8 @@ typedef struct {
     // UINT32 UmReservedFlags:6;
     // /* additional kernel-mode flags */
     // UINT32 KmReservedFlags:8;
-    // WCHAR Prefix[FSP_FSCTL_VOLUME_PREFIX_SIZE / sizeof(WCHAR)]; /* UNC prefix (ServerShare) */
-    // WCHAR FileSystemName[FSP_FSCTL_VOLUME_FSNAME_SIZE / sizeof(WCHAR)];
+    WCHAR Prefix[]; /* UNC prefix (ServerShare) */
+    WCHAR FileSystemName[];
 
     // /* additional fields; specify .Version == sizeof(FSP_FSCTL_VOLUME_PARAMS) */
     // UINT32 VolumeInfoTimeoutValid:1;    /* VolumeInfoTimeout field is valid */
@@ -134,10 +145,10 @@ typedef struct {
     // UINT32 SecurityTimeoutValid:1;      /* SecurityTimeout field is valid*/
     // UINT32 StreamInfoTimeoutValid:1;    /* StreamInfoTimeout field is valid */
     // UINT32 KmAdditionalReservedFlags:28;
-    // UINT32 VolumeInfoTimeout;           /* volume info timeout (millis); overrides FileInfoTimeout */
-    // UINT32 DirInfoTimeout;              /* dir info timeout (millis); overrides FileInfoTimeout */
-    // UINT32 SecurityTimeout;             /* security info timeout (millis); overrides FileInfoTimeout */
-    // UINT32 StreamInfoTimeout;           /* stream info timeout (millis); overrides FileInfoTimeout */
+    UINT32 VolumeInfoTimeout;           /* volume info timeout (millis); overrides FileInfoTimeout */
+    UINT32 DirInfoTimeout;              /* dir info timeout (millis); overrides FileInfoTimeout */
+    UINT32 SecurityTimeout;             /* security info timeout (millis); overrides FileInfoTimeout */
+    UINT32 StreamInfoTimeout;           /* stream info timeout (millis); overrides FileInfoTimeout */
 
     ...;
 

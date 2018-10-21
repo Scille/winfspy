@@ -33,7 +33,13 @@ def nt_error(status):
     return 0xC0000000 <= status <= 0xFFFFFFFF
 
 
-class NTSTATUS:
+def cook_ntstatus(status):
+    for candidate in NTSTATUS:
+        if candidate.value == status:
+            return candidate
+
+
+class NTSTATUS(enum.IntEnum):
     STATUS_SUCCESS = 0x0
     STATUS_WAIT_0 = 0x0
     STATUS_WAIT_1 = 0x1

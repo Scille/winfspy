@@ -39,29 +39,29 @@ def create_file_system(fs_name, volume_prefix=None):
     return file_system
 
 
-@ffi.def_extern()
-def SvcStart(Service, argc, argv):
-    return NTSTATUS.STATUS_NOT_IMPLEMENTED
-    # # Create file system
-    # # fs = create_fs()
-    # file_system = create_file_system()
+# @ffi.def_extern()
+# def SvcStart(Service, argc, argv):
+#     return NTSTATUS.STATUS_NOT_IMPLEMENTED
+#     # # Create file system
+#     # # fs = create_fs()
+#     # file_system = create_file_system()
 
-    # try:
-    #     # Start dispatcher
-    #     result = FspFileSystemStartDispatcher(file_system, 0);
-    #     if not nt_success(result):
-    #         raise RuntimeError(f"Cannot start file system: {result!r}")
+#     # try:
+#     #     # Start dispatcher
+#     #     result = FspFileSystemStartDispatcher(file_system, 0);
+#     #     if not nt_success(result):
+#     #         raise RuntimeError(f"Cannot start file system: {result!r}")
 
-    #     # Mount file system
-    #     mountpoint = FspFileSystemMountPoint(file_system);
+#     #     # Mount file system
+#     #     mountpoint = FspFileSystemMountPoint(file_system);
 
-    # finally:
-    #     pass
-    #     # destroy_fs(fs)
+#     # finally:
+#     #     pass
+#     #     # destroy_fs(fs)
 
-    # return NTSTATUS.STATUS_SUCCESS
+#     # return NTSTATUS.STATUS_SUCCESS
 
 
-@ffi.def_extern()
-def SvcStop(Service):
-    return NTSTATUS.STATUS_NOT_IMPLEMENTED
+# @ffi.def_extern()
+# def SvcStop(Service):
+#     return NTSTATUS.STATUS_NOT_IMPLEMENTED
