@@ -1,23 +1,16 @@
 import os
+import time
 
 from .utils import get_winfsp_dir
+from .ntstatus import NTSTATUS
+from .filetime import filetime_now
 
-# WinFSP dll is not available system-wide, so we have first to retrieve it
+
+# WinFSP's DLL is not available system-wide, so we have first to retrieve it
 # (using either user-provided environ variable or the infamous windows
 # registry) and customize the PATH environ variable before loading the
-# bindings (themselves triggering the dynamic loading of WinFSP dll)
+# bindings (themselves triggering the dynamic loading of WinFSP's DLL)
 
 os.environ["PATH"] = f"{get_winfsp_dir('bin')};{os.environ.get('PATH')}"
 
 from ._bindings import ffi, lib
-
-STATUS_NOT_IMPLEMENTED = 0xC0000002
-
-@ffi.def_extern()
-def SvcStart(Service, argc, argv):
-    return STATUS_NOT_IMPLEMENTED
-
-
-@ffi.def_extern()
-def SvcStop(Service):
-    return STATUS_NOT_IMPLEMENTED

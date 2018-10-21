@@ -1,10 +1,10 @@
-import winfspy
-
-
-def main():
-    import pdb; pdb.set_trace()
-    winfspy.lib.FspServiceRunEx("passthrough", winfspy.lib.SvcStart, winfspy.lib.SvcStop, winfspy.ffi.NULL, winfspy.ffi.NULL)
+import argparse
+from winfspy import start_fs
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mountpoint")
+    parser.add_argument("-d", dest='debug', action='store_true')
+    args = parser.parse_args()
+    start_fs(args.mountpoint, debug=args.debug)

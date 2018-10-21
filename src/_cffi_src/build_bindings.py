@@ -52,10 +52,12 @@ ffibuilder.set_source(
 with open(BASEDIR + "/winfsp.cdef.h") as fd:
     ffibuilder.cdef(strip_by_shaif(fd.read()))
 
-ffibuilder.cdef("""
+ffibuilder.cdef(
+    """
     extern "Python" NTSTATUS SvcStart(FSP_SERVICE *Service, ULONG argc, PWSTR *argv);
     extern "Python" NTSTATUS SvcStop(FSP_SERVICE *Service);
-""")
+"""
+)
 
 
 if __name__ == "__main__":
