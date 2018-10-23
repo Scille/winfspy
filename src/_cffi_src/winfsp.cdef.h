@@ -7,6 +7,8 @@ typedef NTSTATUS* PNTSTATUS;
 
 typedef struct
 {
+    // Security descriptor structure is not guarantee so better leave it this way
+    // See https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_security_descriptor
     ...;
 } SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR;
 
@@ -75,13 +77,36 @@ typedef struct
 } FSP_FSCTL_VOLUME_INFO;
 
 
-typedef struct {
-    ...;
+typedef struct
+{
+    UINT32 FileAttributes;
+    UINT32 ReparseTag;
+    UINT64 AllocationSize;
+    UINT64 FileSize;
+    UINT64 CreationTime;
+    UINT64 LastAccessTime;
+    UINT64 LastWriteTime;
+    UINT64 ChangeTime;
+    UINT64 IndexNumber;
+    UINT32 HardLinks;                   /* unimplemented: set to 0 */
 } FSP_FSCTL_FILE_INFO;
 
 
-typedef struct {
-    ...;
+typedef struct
+{
+    FSP_FSCTL_FILE_INFO FileInfo;
+    PWSTR NormalizedName;
+    UINT16 NormalizedNameSize;
+} FSP_FSCTL_OPEN_FILE_INFO;
+
+
+typedef struct
+{
+    UINT16 Size;
+    FSP_FSCTL_FILE_INFO FileInfo;
+    UINT8 Padding[24];
+        /* make struct as big as FILE_ID_BOTH_DIR_INFORMATION; allows for in-place copying */
+    WCHAR FileNameBuf[];
 } FSP_FSCTL_DIR_INFO;
 
 

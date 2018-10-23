@@ -2,12 +2,15 @@ from .bindings import ffi, lib
 
 from functools import wraps
 
+
 def joe_la_pocav(func):
     @wraps(func)
     def _wrapper(*args, **kwargs):
-        print(f'POCAV=> {func.__name__}({args}, {kwargs})')
+        print(f"POCAV=> {func.__name__}({args}, {kwargs})")
         return func(*args, **kwargs)
+
     return _wrapper
+
 
 @ffi.def_extern()
 @joe_la_pocav

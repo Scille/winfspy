@@ -12,4 +12,4 @@ os.environ["PATH"] = f"{get_winfsp_dir('bin')};{os.environ.get('PATH')}"
 from ._bindings import ffi, lib
 
 
-__all__ = ('ffi', 'lib')
+__all__ = ("ffi", "lib")

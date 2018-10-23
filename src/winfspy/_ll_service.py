@@ -16,7 +16,6 @@ def _trampolin_OnStart(Service, argc, argv):
     return ret
 
 
-
 @ffi.def_extern()
 def _trampolin_OnStop(Service):
     user_context = ffi.from_handle(Service.UserContext)
@@ -67,14 +66,21 @@ def run_service(service_name, user_context, allow_console_mode=False):
     user_context.__allow_console_mode = allow_console_mode
     user_context.__service_ready = threading.Event()
 
-    service_thread = threading.Thread(target=lib.FspServiceRunEx,
-        args=(service_name, lib._trampolin_OnStart, lib._trampolin_OnStop, lib._trampolin_OnControl, ffi.new_handle(user_context))
+    service_thread = threading.Thread(
+        target=lib.FspServiceRunEx,
+        args=(
+            service_name,
+            lib._trampolin_OnStart,
+            lib._trampolin_OnStop,
+            lib._trampolin_OnControl,
+            ffi.new_handle(user_context),
+        ),
     )
     service_thread.start()
     user_context.__service_ready.wait()
     try:
         yield
     finally:
-        if hasattr(user_context, '__fsp_service_ptr'):
+        if hasattr(user_context, "__fsp_service_ptr"):
             lib.FspServiceStop(user_context.__fsp_service_ptr)
         service_thread.join()
