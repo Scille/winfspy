@@ -70,7 +70,12 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         self._opened = {}
         root_path = PureWindowsPath("/")
-        self._entries = {root_path: FolderObj(root_path)}
+        self._entries = {
+            root_path: FolderObj(root_path),
+            root_path / "foo": FolderObj(root_path / "foo"),
+            root_path / "foo/spam.txt": FileObj(root_path / "foo/spam.txt"),
+            root_path / "bar.txt": FileObj(root_path / "bar.txt"),
+        }
 
     def get_volume_info(self, volume_info):
         volume_info.TotalSize = self.max_file_nodes * self.max_file_size
@@ -172,7 +177,8 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
 
-        lib.FspFileSystemAddDirInfo(ffi.NULL, buffer, length, p_bytes_transferred)
+        class NotEnoughSpace(Exception):
+            pass
 
         def _add_dir_info(entry_obj, name=None):
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
@@ -185,13 +191,30 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
             dir_info.FileNameBuf = name
             dir_info.Size = dir_info_size
-            self._copy_file_info(file_obj, dir_info.FileInfo)
-            lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred)
+            self._copy_file_info(entry_obj, dir_info.FileInfo)
+            if not lib.FspFileSystemAddDirInfo(
+                dir_info, buffer, length, p_bytes_transferred
+            ):
+                raise NotEnoughSpace()
 
-        _add_dir_info(file_obj, name=".")
-        if opened_obj.file_obj.path != PureWindowsPath("/"):
-            parent_file_obj = self._entries[opened_obj.file_obj.path.parent]
-            _add_dir_info(parent_file_obj, name="..")
+        try:
+            _add_dir_info(file_obj, name=".")
+            if opened_obj.file_obj.path != PureWindowsPath("/"):
+                parent_file_obj = self._entries[opened_obj.file_obj.path.parent]
+                _add_dir_info(parent_file_obj, name="..")
+
+            for entry_path, entry_obj in self._entries.items():
+                try:
+                    relative = entry_path.relative_to(file_obj.path)
+                    # Not interested into ourself or our grandchildren
+                    if len(relative.parts) == 1:
+                        _add_dir_info(entry_obj)
+                except ValueError:
+                    continue
+        except NotEnoughSpace:
+            pass
+
+        lib.FspFileSystemAddDirInfo(ffi.NULL, buffer, length, p_bytes_transferred)
 
         return NTSTATUS.STATUS_SUCCESS
 
