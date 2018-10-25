@@ -33,10 +33,11 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-    def __init__(self, path):
+    def __init__(self, path, data=b''):
         super().__init__(path)
         self.file_size = 0
         self.allocation_size = 4096
+        self.data = bytearray(data)
 
     @property
     def attributes(self):
@@ -73,8 +74,8 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         self._entries = {
             root_path: FolderObj(root_path),
             root_path / "foo": FolderObj(root_path / "foo"),
-            root_path / "foo/spam.txt": FileObj(root_path / "foo/spam.txt"),
-            root_path / "bar.txt": FileObj(root_path / "bar.txt"),
+            root_path / "foo/spam.txt": FileObj(root_path / "foo/spam.txt", data=b'spam!'),
+            root_path / "bar.txt": FileObj(root_path / "bar.txt", data=b'bar!'),
         }
 
     def get_volume_info(self, volume_info):
@@ -86,10 +87,6 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         volume_info.VolumeLabelLength = (
             len(self.volume_label) * 2
         )  # Because stored in WCHAR
-        # volume_label_utf16 = self.volume_label.encode('utf-16')
-        # volume_label_utf16_size = len(volume_label_utf16)
-        # volume_info.VolumeLabelLength = len(volume_label_utf16)
-        # ffi.memmove(volume_info.VolumeLabel, volume_label_utf16, len(volume_label_utf16))
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -218,6 +215,51 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    def read(self, file_context, buffer, offset, length, p_bytes_transferred):
+        opened_obj = ffi.from_handle(file_context)
+        file_obj = opened_obj.file_obj
+
+        if offset >= len(file_obj.data):
+            return NTSTATUS.STATUS_END_OF_FILE
+
+        data = file_obj.data[offset:offset+length]
+
+        ffi.memmove(buffer, data, len(data))
+        p_bytes_transferred[0] = len(data)
+
+        return NTSTATUS.STATUS_SUCCESS
+
+    def write(
+        self,
+        file_context,
+        buffer,
+        offset,
+        length,
+        write_to_end_of_file,
+        constrained_io,
+        p_bytes_transferred,
+        file_info,
+    ):
+        opened_obj = ffi.from_handle(file_context)
+        file_obj = opened_obj.file_obj
+
+        if constrained_io:
+            if offset >= len(file_obj.data):
+                return NTSTATUS.STATUS_SUCCESS
+            end_offset = min(len(file_obj.data), offset + length)
+            transferred_length = end_offset - offset
+            file_obj.data[offset:end_offset] = buffer[:transferred_length]
+            p_bytes_transferred[0] = transferred_length
+        else:
+            if write_to_end_of_file:
+                offset = len(file_obj.data)
+            end_offset = offset + length
+            file_obj.data[offset:end_offset] = ffi.buffer(buffer, length)
+            p_bytes_transferred[0] = length
+
+        return NTSTATUS.STATUS_SUCCESS
+
+
 
 # def file_system_interface_factory(user_context):
 #     if not isinstance(user_context, BaseFileSystemIterfaceUserContext):
@@ -304,7 +346,7 @@ def run_fs(mountpoint):
 
     # lib.FspFileSystemSetDebugLog(file_system_ptr, DebugFlags);
 
-    file_system_context = InMemoryFileSystemContext(mountpoint)
+    file_system_context = InMemoryFileSystemContext('bazinga')
     file_system_context_handle = ffi.new_handle(
         file_system_context
     )  # Avoid GC on the handle
@@ -318,7 +360,7 @@ def run_fs(mountpoint):
         print("starting...")
         lib.FspFileSystemStartDispatcher(file_system_ptr[0], 0)
         print("done...")
-        time.sleep(10)
+        time.sleep(100)
     finally:
         print("closing...")
         lib.FspFileSystemDelete(file_system_ptr[0])
