@@ -371,10 +371,13 @@ def main(mountpoint):
 
     service_context = BaseServiceUserContext()
     # service_context = ServiceUserContext(mountpoint)
-    with run_service("bazinga", service_context, allow_console_mode=True):
-        print("running")
-        run_fs(mountpoint)
-        print("stopping")
+    # with run_service("bazinga", service_context, allow_console_mode=True):
+    #     print("running")
+    #     run_fs(mountpoint)
+    #     print("stopping")
+    print("running")
+    run_fs(mountpoint)
+    print("stopping")
 
     # FspFileSystemSetDebugLog(file_system_ptr, DebugFlags);
 
