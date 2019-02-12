@@ -172,6 +172,82 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    def rename(self, file_context, file_name, new_file_name, replace_if_exists):
+        file_name = PureWindowsPath(ffi.string(file_name))
+        new_file_name = PureWindowsPath(ffi.string(new_file_name))
+
+
+        # Retrieve file
+        try:
+            file_obj = self._entries[file_name]
+
+        except KeyError:
+            return NTSTATUS.STATUS_OBJECT_NAME_NOT_FOUND
+
+        try:
+            existing_new_file_obj = self._entries[new_file_name]
+            if not replace_if_exists:
+                return NTSTATUS.STATUS_OBJECT_NAME_COLLISION
+            if isinstance(file_obj, FileObj):
+                return NTSTATUS.STATUS_ACCESS_DENIED
+
+        except KeyError:
+            pass
+
+        self._entries[new_file_name] = self._entries.pop(file_name)
+
+        print(', '.join(map(str, self._entries.keys())))
+
+        return NTSTATUS.STATUS_SUCCESS
+
+    def create(
+        self,
+        file_name,
+        create_options,
+        granted_access,
+        file_attributes,
+        security_descriptor,
+        allocation_size,
+        p_file_context,
+        file_info,
+    ):
+        file_name = PureWindowsPath(ffi.string(file_name))
+
+        # `granted_access` is already handle by winfsp
+        # `allocation_size` useless for us
+        # `security_descriptor` is not supported yet
+
+        # Retrieve file
+        try:
+            parent_file_obj = self._entries[file_name.parent]
+            if isinstance(parent_file_obj, FileObj):
+                # TODO: check this code is ok
+                return NSTATUS.STATUS_NOT_A_DIRECTORY
+        except KeyError:
+            return NSTATUS.STATUS_OBJECT_NAME_NOT_FOUND
+
+        # TODO: handle file_attributes
+
+        if create_options & lib.XXX_FILE_DIRECTORY_FILE:
+            file_obj = self._entries[file_name] = FolderObj(file_name)
+        else:
+            file_obj = self._entries[file_name] = FileObj(file_name)
+
+        opened_obj = OpenedObj(file_obj)
+        handle = ffi.new_handle(opened_obj)
+        self._opened[handle] = opened_obj
+        p_file_context[0] = handle
+
+        self._copy_file_info(file_obj, file_info)
+        logcounted("create",
+            file_name=file_name, file_context=p_file_context[0],
+            create_options=create_options,
+            file_attributes=file_attributes, security_descriptor=security_descriptor,
+            allocation_size=allocation_size
+        )
+
+        return NTSTATUS.STATUS_SUCCESS
+
     @staticmethod
     def _copy_file_info(file_obj, file_info):
         file_info.FileAttributes = file_obj.attributes
@@ -393,8 +469,8 @@ def run_fs(mountpoint):
         volume_creation_time=filetime_now(),
         volume_serial_number=0,
         file_info_timeout=1000,
-        case_sensitive_search=0,
-        case_preserved_names=0,
+        case_sensitive_search=1,
+        case_preserved_names=1,
         unicode_on_disk=1,
         persistent_acls=1,
         post_cleanup_when_modified_only=1,

@@ -47,14 +47,12 @@ ffibuilder.set_source(
 #include <winfsp/winfsp.h>
 
 
-// InitializeSecurityDescriptor must be called with SECURITY_DESCRIPTOR_REVISION
-// which is a #define (hence cannot be accessed directly by cffi)
-DWORD getSecurityDescriptorRevision() {
-    return SECURITY_DESCRIPTOR_REVISION;
-}
-DWORD getStringSecurityDescriptorRevision() {
-    return SDDL_REVISION_1;
-}
+// Expose #define as const to be available at runtime
+
+const int XXX_FILE_DIRECTORY_FILE = FILE_DIRECTORY_FILE;
+const DWORD XXX_SECURITY_DESCRIPTOR_REVISION = SECURITY_DESCRIPTOR_REVISION;
+const DWORD XXX_STRING_SECURITY_DESCRIPTOR_REVISION = SDDL_REVISION_1;
+
 
 // Bitfields are not handled with CFFI, hence this big hack...
 void configure_FSP_FSCTL_VOLUME_PARAMS(
@@ -237,10 +235,11 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
 );
 
 
-// InitializeSecurityDescriptor must be called with SECURITY_DESCRIPTOR_REVISION
-// which is a #define (hence cannot be accessed directly by cffi)
-DWORD getSecurityDescriptorRevision();
-DWORD getStringSecurityDescriptorRevision();
+// Expose #define as const to be available at runtime
+
+extern const int XXX_FILE_DIRECTORY_FILE;
+extern const DWORD XXX_SECURITY_DESCRIPTOR_REVISION;
+extern const DWORD XXX_STRING_SECURITY_DESCRIPTOR_REVISION;
 
 """
 )

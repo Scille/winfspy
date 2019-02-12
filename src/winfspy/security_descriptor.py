@@ -6,7 +6,7 @@ def security_descriptor_factory(str_security_descriptor):
     psd = ffi.new('SECURITY_DESCRIPTOR**')
     psd_size = ffi.new("ULONG*")
     if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
-        str_security_descriptor, lib.getStringSecurityDescriptorRevision(),
+        str_security_descriptor, lib.XXX_STRING_SECURITY_DESCRIPTOR_REVISION,
         psd, psd_size):
         print(':-(((((((((((((((((((((((')
         raise RuntimeError(f'error: {cook_ntstatus(lib.GetLastError())}')
