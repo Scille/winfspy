@@ -2,7 +2,6 @@ from .bindings import ffi, lib
 
 
 def volume_params_factory(
-    version=0,
     sector_size=0,
     sectors_per_allocation_unit=0,
     max_component_length=0,
@@ -47,7 +46,6 @@ def volume_params_factory(
     volume_params = ffi.new("FSP_FSCTL_VOLUME_PARAMS*")
     lib.configure_FSP_FSCTL_VOLUME_PARAMS(
         volume_params,
-        version,
         sector_size,
         sectors_per_allocation_unit,
         max_component_length,

@@ -10,6 +10,7 @@ from winfspy.filetime import filetime_now
 from winfspy.ntstatus import nt_success, cook_ntstatus, NTSTATUS
 from winfspy.file_attributes import FILE_ATTRIBUTE
 from winfspy import start_fs
+from winfspy.security_descriptor import security_descriptor_factory
 
 from pathlib import PureWindowsPath
 
@@ -28,16 +29,24 @@ class BaseFileObj:
         self.change_time = now
         self.index_number = 0
 
-        self.security_descriptor = ffi.NULL
-        self.security_descriptor_size = 0
+        self.security_descriptor, self.security_descriptor_size = security_descriptor_factory("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
 
 
 class FileObj(BaseFileObj):
     def __init__(self, path, data=b''):
         super().__init__(path)
-        self.file_size = 0
-        self.allocation_size = 4096
         self.data = bytearray(data)
+
+    @property
+    def file_size(self):
+        return len(self.data)
+
+    @property
+    def allocation_size(self):
+        if len(self.data) % 4096 == 0:
+            return len(self.data)
+        else:
+            return ((len(self.data) // 4096) + 1) * 4096
 
     @property
     def attributes(self):
@@ -59,6 +68,13 @@ class OpenedObj:
     def __init__(self, file_obj):
         self.file_obj = file_obj
 
+count = 0
+def logcounted(msg, **kwargs):
+    global count
+    count += 1
+    str_kwargs = ', '.join(f"{k}={v!r}" for k, v in kwargs.items())
+    print(f"{count}:: {msg} {str_kwargs}")
+
 
 class InMemoryFileSystemContext(BaseFileSystemUserContext):
     def __init__(self, volume_label):
@@ -79,6 +95,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         }
 
     def get_volume_info(self, volume_info):
+        logcounted("get_volume_info")
         volume_info.TotalSize = self.max_file_nodes * self.max_file_size
         volume_info.FreeSize = (
             self.max_file_nodes - self.file_nodes
@@ -93,6 +110,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
     def set_volume_label(self, volume_label, volume_info):
         assert len(self.volume_label) < 32
         self.volume_label = ffi.string(volume_label)
+        logcounted("set_volume_label", volume_label=self.volume_label)
 
         return self.get_volume_info(volume_info)
 
@@ -104,12 +122,13 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         p_security_descriptor_size,
     ):
         file_name = PureWindowsPath(ffi.string(file_name))
-        print("GET_SECURITY_BY_NAME ++++>", file_name)
+        logcounted("get_security_by_name", file_name=file_name)
 
         # Retrieve file
         try:
             file_obj = self._entries[file_name]
         except KeyError:
+            print(f'=================================== {file_name!r}')
             return NTSTATUS.STATUS_OBJECT_NAME_NOT_FOUND
 
         # Get file attributes
@@ -118,6 +137,27 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         # Get file security
         # TODO
+        if p_security_descriptor_size != ffi.NULL:
+            if file_obj.security_descriptor_size > p_security_descriptor_size[0]:
+                return NTSTATUS.STATUS_BUFFER_OVERFLOW
+            p_security_descriptor_size[0] = file_obj.security_descriptor_size
+
+            if security_descriptor != ffi.NULL:
+                ffi.memmove(
+                    security_descriptor,
+                    file_obj.security_descriptor,
+                    file_obj.security_descriptor_size,
+                )
+
+        return NTSTATUS.STATUS_SUCCESS
+
+    def get_security(
+        self, file_context, security_descriptor, p_security_descriptor_size
+    ):
+        opened_obj = ffi.from_handle(file_context)
+        file_obj = opened_obj.file_obj
+        logcounted("get_security", file_context=file_context)
+
         if p_security_descriptor_size != ffi.NULL:
             if file_obj.security_descriptor_size > p_security_descriptor_size[0]:
                 return NTSTATUS.STATUS_BUFFER_OVERFLOW
@@ -148,12 +188,12 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         self, file_name, create_options, granted_access, p_file_context, file_info
     ):
         file_name = PureWindowsPath(ffi.string(file_name))
-        print("OPEN ++++>", file_name)
 
         # Retrieve file
         try:
             file_obj = self._entries[file_name]
         except KeyError:
+            print(f'=================================== {file_name!r}')
             return NSTATUS.STATUS_OBJECT_NAME_NOT_FOUND
 
         opened_obj = OpenedObj(file_obj)
@@ -162,17 +202,41 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         p_file_context[0] = handle
 
         self._copy_file_info(file_obj, file_info)
+        logcounted("open", file_name=file_name, file_context=p_file_context[0])
 
         return NTSTATUS.STATUS_SUCCESS
 
     def close(self, file_context):
+        logcounted("close", file_context=file_context)
         del self._opened[file_context]
+
+    def get_file_info(self, file_context, file_info):
+        opened_obj = ffi.from_handle(file_context)
+        file_obj = opened_obj.file_obj
+        logcounted("get_file_info", file_context=file_context)
+        self._copy_file_info(file_obj, file_info)
+        return NTSTATUS.STATUS_SUCCESS
+
+    def set_file_size(self, file_context, new_size, set_allocation_size, file_info):
+        opened_obj = ffi.from_handle(file_context)
+        file_obj = opened_obj.file_obj
+        logcounted("set_file_size", file_context=file_context)
+
+        if not set_allocation_size:
+            if new_size < file_obj.file_size:
+                file_obj.data = file_obj.data[:new_size]
+            elif new_size > file_obj.file_size:
+                file_obj.data = file_obj.data + bytearray(new_size - file_obj.file_size)
+
+        self._copy_file_info(file_obj, file_info)
+        return NTSTATUS.STATUS_SUCCESS
 
     def read_directory(
         self, file_context, pattern, marker, buffer, length, p_bytes_transferred
     ):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
+        logcounted("read_directory", file_context=file_context)
 
         class NotEnoughSpace(Exception):
             pass
@@ -218,6 +282,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
     def read(self, file_context, buffer, offset, length, p_bytes_transferred):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
+        logcounted("read", file_context=file_context)
 
         if offset >= len(file_obj.data):
             return NTSTATUS.STATUS_END_OF_FILE
@@ -242,6 +307,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
     ):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
+        logcounted("write", file_context=file_context, buffer=buffer, offset=offset, length=length, write_to_end_of_file=write_to_end_of_file)
 
         if constrained_io:
             if offset >= len(file_obj.data):
@@ -257,6 +323,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
             file_obj.data[offset:end_offset] = ffi.buffer(buffer, length)
             p_bytes_transferred[0] = length
 
+        self._copy_file_info(file_obj, file_info)
         return NTSTATUS.STATUS_SUCCESS
 
 
@@ -334,6 +401,8 @@ def run_fs(mountpoint):
         um_file_context_is_user_context2=1,
         file_system_name=mountpoint,
         prefix="",
+        # security_timeout_valid=1,
+        # security_timeout=10000,
     )
     file_system_ptr = ffi.new("FSP_FILE_SYSTEM**")
 

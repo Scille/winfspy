@@ -5,12 +5,9 @@
 typedef ULONG NTSTATUS;
 typedef NTSTATUS* PNTSTATUS;
 
-typedef struct
-{
-    // Security descriptor structure is not guarantee so better leave it this way
-    // See https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_security_descriptor
-    ...;
-} SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR;
+
+DWORD GetLastError(void);
+
 
 typedef struct {
     ...;
@@ -61,6 +58,125 @@ enum {
     STD_OUTPUT_HANDLE = -11,
     STD_ERROR_HANDLE = -12
 };
+
+
+/*
+ * Windows security descriptor API
+ */
+
+
+typedef struct
+{
+    // Security descriptor structure is not guarantee so better leave it this way
+    // See https://docs.microsoft.com/en-us/windows/desktop/api/winnt/ns-winnt-_security_descriptor
+    ...;
+} SECURITY_DESCRIPTOR, *PSECURITY_DESCRIPTOR;
+
+
+BOOL InitializeSecurityDescriptor(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+  DWORD                dwRevision
+);
+
+
+typedef WORD SECURITY_DESCRIPTOR_CONTROL, *PSECURITY_DESCRIPTOR_CONTROL;
+
+
+BOOL GetSecurityDescriptorControl(
+  PSECURITY_DESCRIPTOR         pSecurityDescriptor,
+  PSECURITY_DESCRIPTOR_CONTROL pControl,
+  LPDWORD                      lpdwRevision
+);
+
+
+// BOOL GetSecurityDescriptorDacl(
+//   PSECURITY_DESCRIPTOR pSecurityDescriptor,
+//   LPBOOL               lpbDaclPresent,
+//   PACL                 *pDacl,
+//   LPBOOL               lpbDaclDefaulted
+// );
+
+
+BOOL GetSecurityDescriptorGroup(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+  PSID                 *pGroup,
+  LPBOOL               lpbGroupDefaulted
+);
+
+
+BOOL GetSecurityDescriptorOwner(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+  PSID                 *pOwner,
+  LPBOOL               lpbOwnerDefaulted
+);
+
+
+DWORD GetSecurityDescriptorLength(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor
+);
+
+
+DWORD GetSecurityDescriptorRMControl(
+  PSECURITY_DESCRIPTOR SecurityDescriptor,
+  PUCHAR               RMControl
+);
+
+
+// BOOL GetSecurityDescriptorSacl(
+//   PSECURITY_DESCRIPTOR pSecurityDescriptor,
+//   LPBOOL               lpbSaclPresent,
+//   PACL                 *pSacl,
+//   LPBOOL               lpbSaclDefaulted
+// );
+
+
+BOOL IsValidSecurityDescriptor(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor
+);
+
+
+// BOOL SetSecurityDescriptorDacl(
+//   PSECURITY_DESCRIPTOR pSecurityDescriptor,
+//   BOOL                 bDaclPresent,
+//   PACL                 pDacl,
+//   BOOL                 bDaclDefaulted
+// );
+
+
+BOOL SetSecurityDescriptorGroup(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+  PSID                 pGroup,
+  BOOL                 bGroupDefaulted
+);
+
+
+BOOL SetSecurityDescriptorOwner(
+  PSECURITY_DESCRIPTOR pSecurityDescriptor,
+  PSID                 pOwner,
+  BOOL                 bOwnerDefaulted
+);
+
+
+DWORD SetSecurityDescriptorRMControl(
+  PSECURITY_DESCRIPTOR SecurityDescriptor,
+  PUCHAR               RMControl
+);
+
+
+// BOOL WINAPI SetSecurityDescriptorSacl(
+//   PSECURITY_DESCRIPTOR pSecurityDescriptor,
+//   BOOL                 bSaclPresent,
+//   PACL                 pSacl,
+//   BOOL                 bSaclDefaulted
+// );
+
+
+BOOL ConvertStringSecurityDescriptorToSecurityDescriptorW(
+  LPCWSTR              StringSecurityDescriptor,
+  DWORD                StringSDRevision,
+  PSECURITY_DESCRIPTOR *SecurityDescriptor,
+  PULONG               SecurityDescriptorSize
+);
 
 
 /******************************************************

@@ -41,13 +41,24 @@ ffibuilder = FFI()
 ffibuilder.set_source(
     "winfspy._bindings",
     """
+#include <windows.h>
+#include <sddl.h>
 #include <strsafe.h>
 #include <winfsp/winfsp.h>
+
+
+// InitializeSecurityDescriptor must be called with SECURITY_DESCRIPTOR_REVISION
+// which is a #define (hence cannot be accessed directly by cffi)
+DWORD getSecurityDescriptorRevision() {
+    return SECURITY_DESCRIPTOR_REVISION;
+}
+DWORD getStringSecurityDescriptorRevision() {
+    return SDDL_REVISION_1;
+}
 
 // Bitfields are not handled with CFFI, hence this big hack...
 void configure_FSP_FSCTL_VOLUME_PARAMS(
     FSP_FSCTL_VOLUME_PARAMS *VolumeParams,
-    UINT16 version,
     UINT16 sector_size,
     UINT16 sectors_per_allocation_unit,
     UINT16 max_component_length,
@@ -89,7 +100,7 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
     UINT32 security_timeout,
     UINT32 stream_info_timeout
 ) {
-    VolumeParams->Version = version;
+    VolumeParams->Version = sizeof(FSP_FSCTL_VOLUME_PARAMS);
     VolumeParams->SectorSize = sector_size;
     VolumeParams->SectorsPerAllocationUnit = sectors_per_allocation_unit;
     VolumeParams->MaxComponentLength = max_component_length;
@@ -135,7 +146,7 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
 }
     """,
     include_dirs=[f"{WINFSP_DIR}/inc"],
-    libraries=["winfsp-" + ("x64" if is_64bits else "x86")],
+    libraries=["winfsp-" + ("x64" if is_64bits else "x86"), 'advapi32'],
     library_dirs=[f"{WINFSP_DIR}/lib"],
 )
 
@@ -183,7 +194,6 @@ extern "Python" NTSTATUS _trampolin_SetDelete(FSP_FILE_SYSTEM * FileSystem, PVOI
 // Bitfields are not handled with CFFI, hence this big hack...
 void configure_FSP_FSCTL_VOLUME_PARAMS(
     FSP_FSCTL_VOLUME_PARAMS * VolumeParams,
-    UINT16 version,
     UINT16 sector_size,
     UINT16 sectors_per_allocation_unit,
     UINT16 max_component_length,
@@ -225,6 +235,12 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
     UINT32 security_timeout,
     UINT32 stream_info_timeout
 );
+
+
+// InitializeSecurityDescriptor must be called with SECURITY_DESCRIPTOR_REVISION
+// which is a #define (hence cannot be accessed directly by cffi)
+DWORD getSecurityDescriptorRevision();
+DWORD getStringSecurityDescriptorRevision();
 
 """
 )

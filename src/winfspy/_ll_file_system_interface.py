@@ -1,4 +1,5 @@
 from .bindings import ffi, lib
+from .ntstatus import cook_ntstatus, nt_success, cook_ntstatus
 
 from functools import wraps
 
@@ -6,8 +7,11 @@ from functools import wraps
 def joe_la_pocav(func):
     @wraps(func)
     def _wrapper(*args, **kwargs):
-        print(f"POCAV=> {func.__name__}({args}, {kwargs})")
-        return func(*args, **kwargs)
+        # print(f"POCAV=> {func.__name__}({args}, {kwargs})")
+        ret = func(*args, **kwargs)
+        if ret is not None and not nt_success(ret):
+            print(f'---------------- ERROR --- {cook_ntstatus(ret)!r}')
+        return ret
 
     return _wrapper
 
