@@ -1,5 +1,8 @@
 import argparse
 import time
+import threading
+from functools import wraps
+from pathlib import PureWindowsPath
 
 from winfspy._base_file_system_interface import BaseFileSystemUserContext
 from winfspy._ll_file_system_interface import file_system_interface_factory
@@ -12,7 +15,18 @@ from winfspy.file_attributes import FILE_ATTRIBUTE
 from winfspy import start_fs
 from winfspy.security_descriptor import security_descriptor_factory
 
-from pathlib import PureWindowsPath
+
+thread_lock = threading.Lock()
+
+
+def threadsafe(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        with thread_lock:
+            return fn(*args, **kwargs)
+
+    return wrapper
+
 
 
 class BaseFileObj:
@@ -94,6 +108,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
             root_path / "bar.txt": FileObj(root_path / "bar.txt", data=b'bar!'),
         }
 
+    @threadsafe
     def get_volume_info(self, volume_info):
         logcounted("get_volume_info")
         volume_info.TotalSize = self.max_file_nodes * self.max_file_size
@@ -107,6 +122,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def set_volume_label(self, volume_label, volume_info):
         assert len(self.volume_label) < 32
         self.volume_label = ffi.string(volume_label)
@@ -114,6 +130,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return self.get_volume_info(volume_info)
 
+    @threadsafe
     def get_security_by_name(
         self,
         file_name,
@@ -151,6 +168,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def get_security(
         self, file_context, security_descriptor, p_security_descriptor_size
     ):
@@ -172,6 +190,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def rename(self, file_context, file_name, new_file_name, replace_if_exists):
         file_name = PureWindowsPath(ffi.string(file_name))
         new_file_name = PureWindowsPath(ffi.string(new_file_name))
@@ -194,12 +213,23 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         except KeyError:
             pass
 
-        self._entries[new_file_name] = self._entries.pop(file_name)
+        for entry_path, entry in self._entries.items():
+            try:
+                relative = entry_path.relative_to(file_name)
+                new_entry_path = new_file_name / relative
+                print('===> RENAME', entry_path, new_entry_path)
+                entry = self._entries.pop(entry_path)
+                entry.path = new_entry_path
+                self._entries[new_entry_path] = entry
+            except ValueError:
+                continue
+        # self._entries[new_file_name] = self._entries.pop(file_name)
 
         print(', '.join(map(str, self._entries.keys())))
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def create(
         self,
         file_name,
@@ -260,6 +290,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         file_info.ChangeTime = file_obj.change_time
         file_info.IndexNumber = file_obj.index_number
 
+    @threadsafe
     def open(
         self, file_name, create_options, granted_access, p_file_context, file_info
     ):
@@ -282,10 +313,12 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def close(self, file_context):
         logcounted("close", file_context=file_context)
         del self._opened[file_context]
 
+    @threadsafe
     def get_file_info(self, file_context, file_info):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
@@ -293,6 +326,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         self._copy_file_info(file_obj, file_info)
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def set_file_size(self, file_context, new_size, set_allocation_size, file_info):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
@@ -307,12 +341,18 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
         self._copy_file_info(file_obj, file_info)
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def read_directory(
         self, file_context, pattern, marker, buffer, length, p_bytes_transferred
     ):
+        if marker:
+            marker = PureWindowsPath(ffi.string(marker))
+        else:
+            marker = None
+
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
-        logcounted("read_directory", file_context=file_context)
+        logcounted("read_directory", path=opened_obj.file_obj.path, file_context=file_context, marker=marker)
 
         class NotEnoughSpace(Exception):
             pass
@@ -345,6 +385,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
                     relative = entry_path.relative_to(file_obj.path)
                     # Not interested into ourself or our grandchildren
                     if len(relative.parts) == 1:
+                        print('==> ADD', entry_path)
                         _add_dir_info(entry_obj)
                 except ValueError:
                     continue
@@ -355,6 +396,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def read(self, file_context, buffer, offset, length, p_bytes_transferred):
         opened_obj = ffi.from_handle(file_context)
         file_obj = opened_obj.file_obj
@@ -370,6 +412,7 @@ class InMemoryFileSystemContext(BaseFileSystemUserContext):
 
         return NTSTATUS.STATUS_SUCCESS
 
+    @threadsafe
     def write(
         self,
         file_context,
