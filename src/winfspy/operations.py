@@ -1,6 +1,6 @@
 from .plumbing.winstuff import NTSTATUS, security_descriptor_factory
 from .plumbing.bindings import lib, ffi
-from .exceptions import NTStatus
+from .exceptions import NTStatusError
 
 
 class BaseFileContext:
