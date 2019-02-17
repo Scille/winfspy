@@ -237,7 +237,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             file_obj = self._entries[file_name]
         except KeyError:
             print(f'=================================== {file_name!r}')
-            raise NTStatusObjectNameNotFound
+            raise NTStatusObjectNameNotFound()
 
         logcounted("open", file_name=file_name)
         return OpenedObj(file_obj)
@@ -356,7 +356,13 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             return length
 
     def cleanup(self, file_context, file_name, flags) -> None:
-        pass
+        # TODO: expose FspCleanupDelete&friends
+        if flags & 1:
+            file_name = PureWindowsPath(file_name)
+            try:
+                del self._entries[file_name]
+            except KeyError:
+                raise NTStatusObjectNameNotFound()
 
 
 def main(mountpoint, label, debug):
