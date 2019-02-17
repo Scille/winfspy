@@ -33,7 +33,7 @@ class BaseFileSystemOperations:
         try:
             vi = self.get_volume_info()
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         volume_info.TotalSize = vi['total_size']
@@ -69,7 +69,7 @@ class BaseFileSystemOperations:
         try:
             self.set_volume_label(cooked_volume_label)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_volume_info(volume_info)
@@ -93,7 +93,7 @@ class BaseFileSystemOperations:
         try:
             ret = self.get_security_by_name(cooked_file_name)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         # TODO...
@@ -155,7 +155,7 @@ class BaseFileSystemOperations:
                 allocation_size,
             )
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value 
 
         file_context = ffi.new_handle(cooked_file_context)
@@ -189,7 +189,7 @@ class BaseFileSystemOperations:
         try:
             cooked_file_context = self.open(cooked_file_name, create_options, granted_access)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         file_context = ffi.new_handle(cooked_file_context)
@@ -212,7 +212,7 @@ class BaseFileSystemOperations:
         try:
             self.overwrite(cooked_file_context, file_attributes, replace_file_attributes, allocation_size)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_file_info(file_context, file_info)
@@ -235,7 +235,7 @@ class BaseFileSystemOperations:
         try:
             self.cleanup(cooked_file_context, cooked_file_name, flags)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
     def cleanup(self, file_context, file_name, flags) -> None:
@@ -251,7 +251,7 @@ class BaseFileSystemOperations:
         try:
             self.close(cooked_file_context)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         del self._opened_objs[file_context]
@@ -269,7 +269,7 @@ class BaseFileSystemOperations:
         try:
             data = self.read(cooked_file_context, offset, length)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         ffi.memmove(buffer, data, len(data))
@@ -302,7 +302,7 @@ class BaseFileSystemOperations:
         try:
             p_bytes_transferred[0] = self.write(cooked_file_context, cooked_buffer, offset, write_to_end_of_file, constrained_io)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_file_info(file_context, file_info)
@@ -327,7 +327,7 @@ class BaseFileSystemOperations:
         try:
             return self.flush(cooked_file_context)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_file_info(file_context, file_info)
@@ -345,7 +345,7 @@ class BaseFileSystemOperations:
         try:
             ret = self.get_file_info(cooked_file_context)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         # TODO: handle WIN32 -> POSIX date conversion here ?
@@ -379,7 +379,7 @@ class BaseFileSystemOperations:
         try:
             ret = self.set_basic_info(cooked_file_context, file_attributes, creation_time, last_access_time, last_write_time, change_time, file_info)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         file_info.FileAttributes = ret.get('file_attributes', 0)
@@ -408,7 +408,7 @@ class BaseFileSystemOperations:
         try:
             ret = self.set_file_size(cooked_file_context, new_size, set_allocation_size)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_file_info(file_context, file_info)
@@ -427,7 +427,7 @@ class BaseFileSystemOperations:
         try:
             self.can_delete(cooked_file_context, cooked_file_name)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
@@ -448,7 +448,7 @@ class BaseFileSystemOperations:
         try:
             self.rename(cooked_file_context, cooked_file_name, cooked_new_file_name, bool(replace_if_exists))
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
@@ -469,7 +469,7 @@ class BaseFileSystemOperations:
         try:
             self.get_security(cooked_file_context)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         sd, sd_size = security_descriptor_factory("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
@@ -505,7 +505,7 @@ class BaseFileSystemOperations:
         try:
             self.set_security(cooked_file_context, security_information, modification_descriptor)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
@@ -529,7 +529,7 @@ class BaseFileSystemOperations:
         try:
             entries = self.read_directory(cooked_file_context, coocked_marker)
 
-        except NTStatus as exc:
+        except NTStatusError as exc:
             return exc.value
 
         for entry in entries:
