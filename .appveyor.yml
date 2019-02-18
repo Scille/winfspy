@@ -39,7 +39,7 @@ artifacts:
   path: 'dist/*.whl'
 
 deploy_script:
- - echo "Starting Artifact Deployment"
+  - echo "Starting Artifact Deployment"
   # populate pypirc file for twine
   - echo [distutils]                                  > %USERPROFILE%\\.pypirc
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
