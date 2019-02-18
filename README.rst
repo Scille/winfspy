@@ -14,6 +14,6 @@ WinFSPy
         :target: https://github.com/ambv/black
         :alt: Code style: black
 
-Bindings for `WinFSP <http://www.secfs.net/winfsp/>`_
+Bindings for `WinFSP <http://www.secfs.net/winfsp/>`_ version 1.4 and onward.
 
 * Free software: BSD
