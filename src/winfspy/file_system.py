@@ -95,46 +95,49 @@ def _volume_params_factory(
 
 
 class FileSystem:
-    def __init__(
-        self,
-        mountpoint,
-        operations,
-        debug=False,
-        **volume_params
-    ):
+    def __init__(self, mountpoint, operations, debug=False, **volume_params):
         self.started = False
         if not isinstance(operations, BaseFileSystemOperations):
-            raise ValueError(f'`operations` must be a `BaseFileSystemOperations` instance.')
+            raise ValueError(
+                f"`operations` must be a `BaseFileSystemOperations` instance."
+            )
 
         self.mountpoint = mountpoint
         self.operations = operations
 
-        self._volume_params = _volume_params_factory(
-            **volume_params,
-        )
+        self._volume_params = _volume_params_factory(**volume_params)
         self._file_system_interface = file_system_interface_trampoline_factory()
         self._file_system_ptr = ffi.new("FSP_FILE_SYSTEM**")
         result = lib.FspFileSystemCreate(
-            lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME, self._volume_params, self._file_system_interface, self._file_system_ptr
+            lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME,
+            self._volume_params,
+            self._file_system_interface,
+            self._file_system_ptr,
         )
         if not nt_success(result):
-            raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
+            raise WinFSPyError(
+                f"Cannot create file system: {cook_ntstatus(result).name}"
+            )
 
         # Avoid GC on the handle
         self._operations_handle = ffi.new_handle(operations)
         self._file_system_ptr[0].UserContext = self._operations_handle
 
         if debug:
-            lib.FspFileSystemSetDebugLog(self._file_system_ptr, 1);
+            lib.FspFileSystemSetDebugLog(self._file_system_ptr, 1)
 
     def start(self):
         if self.started:
             raise FileSystemAlreadyStarted()
         self.started = True
 
-        result = lib.FspFileSystemSetMountPoint(self._file_system_ptr[0], self.mountpoint)
+        result = lib.FspFileSystemSetMountPoint(
+            self._file_system_ptr[0], self.mountpoint
+        )
         if not nt_success(result):
-            raise WinFSPyError(f"Cannot mount file system: {cook_ntstatus(result).name}")
+            raise WinFSPyError(
+                f"Cannot mount file system: {cook_ntstatus(result).name}"
+            )
         lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
 
     def stop(self):

@@ -168,7 +168,7 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
 }
     """,
     include_dirs=[f"{WINFSP_DIR}/inc"],
-    libraries=["winfsp-" + ("x64" if is_64bits else "x86"), 'advapi32'],
+    libraries=["winfsp-" + ("x64" if is_64bits else "x86"), "advapi32"],
     library_dirs=[f"{WINFSP_DIR}/lib"],
 )
 

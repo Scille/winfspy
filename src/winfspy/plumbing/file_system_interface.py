@@ -10,7 +10,7 @@ def joe_la_pocav(func):
         # print(f"POCAV=> {func.__name__}({args}, {kwargs})")
         ret = func(*args, **kwargs)
         if ret is not None and not nt_success(ret):
-            print(f'---------------- ERROR --- {cook_ntstatus(ret)!r}')
+            print(f"---------------- ERROR --- {cook_ntstatus(ret)!r}")
         return ret
 
     return _wrapper
@@ -117,7 +117,9 @@ def _trampolin_fs_Close(FileSystem, FileContext):
 
 @ffi.def_extern()
 @joe_la_pocav
-def _trampolin_fs_Read(FileSystem, FileContext, Buffer, Offset, Length, PBytesTransferred):
+def _trampolin_fs_Read(
+    FileSystem, FileContext, Buffer, Offset, Length, PBytesTransferred
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_read(FileContext, Buffer, Offset, Length, PBytesTransferred)
 
@@ -192,7 +194,9 @@ def _trampolin_fs_SetFileSize(
     FileSystem, FileContext, NewSize, SetAllocationSize, FileInfo
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_set_file_size(FileContext, NewSize, SetAllocationSize, FileInfo)
+    return user_context.ll_set_file_size(
+        FileContext, NewSize, SetAllocationSize, FileInfo
+    )
 
 
 @ffi.def_extern()
@@ -204,7 +208,9 @@ def _trampolin_fs_CanDelete(FileSystem, FileContext, FileName):
 
 @ffi.def_extern()
 @joe_la_pocav
-def _trampolin_fs_Rename(FileSystem, FileContext, FileName, NewFileName, ReplaceIfExists):
+def _trampolin_fs_Rename(
+    FileSystem, FileContext, FileName, NewFileName, ReplaceIfExists
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_rename(FileContext, FileName, NewFileName, ReplaceIfExists)
 
@@ -286,7 +292,9 @@ def _trampolin_fs_GetStreamInfo(
     FileSystem, FileContext, Buffer, Length, PBytesTransferred
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_get_stream_info(FileContext, Buffer, Length, PBytesTransferred)
+    return user_context.ll_get_stream_info(
+        FileContext, Buffer, Length, PBytesTransferred
+    )
 
 
 @ffi.def_extern()

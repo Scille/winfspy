@@ -8,19 +8,18 @@ class BaseFileContext:
 
 
 def configure_file_info(file_info, **kwargs):
-    file_info.FileAttributes = kwargs.get('file_attributes', 0)
-    file_info.ReparseTag = kwargs.get('reparse_tag', 0)
-    file_info.AllocationSize = kwargs.get('allocation_size', 0)
-    file_info.FileSize = kwargs.get('file_size', 0)
-    file_info.CreationTime = kwargs.get('creation_time', 0)
-    file_info.LastAccessTime = kwargs.get('last_access_time', 0)
-    file_info.LastWriteTime = kwargs.get('last_write_time', 0)
-    file_info.ChangeTime = kwargs.get('change_time', 0)
-    file_info.IndexNumber = kwargs.get('index_number', 0)
+    file_info.FileAttributes = kwargs.get("file_attributes", 0)
+    file_info.ReparseTag = kwargs.get("reparse_tag", 0)
+    file_info.AllocationSize = kwargs.get("allocation_size", 0)
+    file_info.FileSize = kwargs.get("file_size", 0)
+    file_info.CreationTime = kwargs.get("creation_time", 0)
+    file_info.LastAccessTime = kwargs.get("last_access_time", 0)
+    file_info.LastWriteTime = kwargs.get("last_write_time", 0)
+    file_info.ChangeTime = kwargs.get("change_time", 0)
+    file_info.IndexNumber = kwargs.get("index_number", 0)
 
 
 class BaseFileSystemOperations:
-
     def __init__(self):
         self._opened_objs = {}
 
@@ -36,11 +35,11 @@ class BaseFileSystemOperations:
         except NTStatusError as exc:
             return exc.value
 
-        volume_info.TotalSize = vi['total_size']
-        volume_info.FreeSize = vi['free_size']
-        volume_label =  vi['volume_label']
+        volume_info.TotalSize = vi["total_size"]
+        volume_info.FreeSize = vi["free_size"]
+        volume_label = vi["volume_label"]
         if len(volume_label) > 32:
-            raise ValueError('`volume_label` should be at most 32 characters long !')
+            raise ValueError("`volume_label` should be at most 32 characters long !")
         volume_info.VolumeLabel = volume_label
         # Stored in WCHAR, so each character should be 2 octets
         volume_info.VolumeLabelLength = len(volume_label) * 2
@@ -97,12 +96,14 @@ class BaseFileSystemOperations:
             return exc.value
 
         # TODO...
-        sd, sd_size = security_descriptor_factory("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
+        sd, sd_size = security_descriptor_factory(
+            "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
+        )
 
         # Get file attributes
         if p_file_attributes_or_reparse_point_index != ffi.NULL:
             # TODO: wrap attributes with an enum ?
-            p_file_attributes_or_reparse_point_index[0] = ret['file_attributes']
+            p_file_attributes_or_reparse_point_index[0] = ret["file_attributes"]
 
         # Get file security
         # TODO
@@ -112,11 +113,7 @@ class BaseFileSystemOperations:
             p_security_descriptor_size[0] = sd_size
 
             if security_descriptor != ffi.NULL:
-                ffi.memmove(
-                    security_descriptor,
-                    sd,
-                    sd_size,
-                )
+                ffi.memmove(security_descriptor, sd, sd_size)
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -156,7 +153,7 @@ class BaseFileSystemOperations:
             )
 
         except NTStatusError as exc:
-            return exc.value 
+            return exc.value
 
         file_context = ffi.new_handle(cooked_file_context)
         p_file_context[0] = file_context
@@ -187,7 +184,9 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
 
         try:
-            cooked_file_context = self.open(cooked_file_name, create_options, granted_access)
+            cooked_file_context = self.open(
+                cooked_file_name, create_options, granted_access
+            )
 
         except NTStatusError as exc:
             return exc.value
@@ -204,13 +203,25 @@ class BaseFileSystemOperations:
 
     # ~~~ OVERWRITE ~~~
 
-    def ll_overwrite(self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int, file_info) -> NTSTATUS:
+    def ll_overwrite(
+        self,
+        file_context,
+        file_attributes,
+        replace_file_attributes: bool,
+        allocation_size: int,
+        file_info,
+    ) -> NTSTATUS:
         """
         Overwrite a file.
         """
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.overwrite(cooked_file_context, file_attributes, replace_file_attributes, allocation_size)
+            self.overwrite(
+                cooked_file_context,
+                file_attributes,
+                replace_file_attributes,
+                allocation_size,
+            )
 
         except NTStatusError as exc:
             return exc.value
@@ -261,7 +272,9 @@ class BaseFileSystemOperations:
 
     # ~~~ READ ~~~
 
-    def ll_read(self, file_context, buffer, offset, length, p_bytes_transferred) -> NTSTATUS:
+    def ll_read(
+        self, file_context, buffer, offset, length, p_bytes_transferred
+    ) -> NTSTATUS:
         """
         Read a file.
         """
@@ -291,7 +304,7 @@ class BaseFileSystemOperations:
         write_to_end_of_file,
         constrained_io,
         p_bytes_transferred,
-        file_info
+        file_info,
     ) -> NTSTATUS:
         """
         Write a file.
@@ -300,21 +313,20 @@ class BaseFileSystemOperations:
         cooked_buffer = ffi.buffer(buffer, length)
 
         try:
-            p_bytes_transferred[0] = self.write(cooked_file_context, cooked_buffer, offset, write_to_end_of_file, constrained_io)
+            p_bytes_transferred[0] = self.write(
+                cooked_file_context,
+                cooked_buffer,
+                offset,
+                write_to_end_of_file,
+                constrained_io,
+            )
 
         except NTStatusError as exc:
             return exc.value
 
         return self.ll_get_file_info(file_context, file_info)
 
-    def write(
-        self,
-        file_context,
-        buffer,
-        offset,
-        write_to_end_of_file,
-        constrained_io
-    ):
+    def write(self, file_context, buffer, offset, write_to_end_of_file, constrained_io):
         raise NotImplementedError()
 
     # ~~~ FLUSH ~~~
@@ -350,15 +362,15 @@ class BaseFileSystemOperations:
 
         # TODO: handle WIN32 -> POSIX date conversion here ?
 
-        file_info.FileAttributes = ret.get('file_attributes', 0)
-        file_info.ReparseTag = ret.get('reparse_tag', 0)
-        file_info.AllocationSize = ret.get('allocation_size', 0)
-        file_info.FileSize = ret.get('file_size', 0)
-        file_info.CreationTime = ret.get('creation_time', 0)
-        file_info.LastAccessTime = ret.get('last_access_time', 0)
-        file_info.LastWriteTime = ret.get('last_write_time', 0)
-        file_info.ChangeTime = ret.get('change_time', 0)
-        file_info.IndexNumber = ret.get('index_number', 0)
+        file_info.FileAttributes = ret.get("file_attributes", 0)
+        file_info.ReparseTag = ret.get("reparse_tag", 0)
+        file_info.AllocationSize = ret.get("allocation_size", 0)
+        file_info.FileSize = ret.get("file_size", 0)
+        file_info.CreationTime = ret.get("creation_time", 0)
+        file_info.LastAccessTime = ret.get("last_access_time", 0)
+        file_info.LastWriteTime = ret.get("last_write_time", 0)
+        file_info.ChangeTime = ret.get("change_time", 0)
+        file_info.IndexNumber = ret.get("index_number", 0)
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -367,8 +379,15 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_BASIC_INFO ~~~
 
-    def ll_set_basic_info(self, file_context,
-        file_attributes, creation_time, last_access_time, last_write_time, change_time, file_info
+    def ll_set_basic_info(
+        self,
+        file_context,
+        file_attributes,
+        creation_time,
+        last_access_time,
+        last_write_time,
+        change_time,
+        file_info,
     ):
 
         """
@@ -377,24 +396,41 @@ class BaseFileSystemOperations:
         cooked_file_context = ffi.from_handle(file_context)
         # TODO: handle WIN32 -> POSIX date conversion here ?
         try:
-            ret = self.set_basic_info(cooked_file_context, file_attributes, creation_time, last_access_time, last_write_time, change_time, file_info)
+            ret = self.set_basic_info(
+                cooked_file_context,
+                file_attributes,
+                creation_time,
+                last_access_time,
+                last_write_time,
+                change_time,
+                file_info,
+            )
 
         except NTStatusError as exc:
             return exc.value
 
-        file_info.FileAttributes = ret.get('file_attributes', 0)
-        file_info.ReparseTag = ret.get('reparse_tag', 0)
-        file_info.AllocationSize = ret.get('allocation_size', 0)
-        file_info.FileSize = ret.get('file_size', 0)
-        file_info.CreationTime = ret.get('creation_time', 0)
-        file_info.LastAccessTime = ret.get('last_access_time', 0)
-        file_info.LastWriteTime = ret.get('last_write_time', 0)
-        file_info.ChangeTime = ret.get('change_time', 0)
-        file_info.IndexNumber = ret.get('index_number', 0)
+        file_info.FileAttributes = ret.get("file_attributes", 0)
+        file_info.ReparseTag = ret.get("reparse_tag", 0)
+        file_info.AllocationSize = ret.get("allocation_size", 0)
+        file_info.FileSize = ret.get("file_size", 0)
+        file_info.CreationTime = ret.get("creation_time", 0)
+        file_info.LastAccessTime = ret.get("last_access_time", 0)
+        file_info.LastWriteTime = ret.get("last_write_time", 0)
+        file_info.ChangeTime = ret.get("change_time", 0)
+        file_info.IndexNumber = ret.get("index_number", 0)
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def set_basic_info(self, file_context, file_attributes, creation_time, last_access_time, last_write_time, change_time, file_info) -> dict:
+    def set_basic_info(
+        self,
+        file_context,
+        file_attributes,
+        creation_time,
+        last_access_time,
+        last_write_time,
+        change_time,
+        file_info,
+    ) -> dict:
         raise NotImplementedError()
 
     # ~~~ SET_FILE_SIZE ~~~
@@ -446,14 +482,21 @@ class BaseFileSystemOperations:
         cooked_new_file_name = ffi.string(new_file_name)
 
         try:
-            self.rename(cooked_file_context, cooked_file_name, cooked_new_file_name, bool(replace_if_exists))
+            self.rename(
+                cooked_file_context,
+                cooked_file_name,
+                cooked_new_file_name,
+                bool(replace_if_exists),
+            )
 
         except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def rename(self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool):
+    def rename(
+        self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool
+    ):
         raise NotImplementedError()
 
     # ~~~ GET_SECURITY ~~~
@@ -472,7 +515,9 @@ class BaseFileSystemOperations:
         except NTStatusError as exc:
             return exc.value
 
-        sd, sd_size = security_descriptor_factory("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
+        sd, sd_size = security_descriptor_factory(
+            "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
+        )
 
         if p_security_descriptor_size != ffi.NULL:
             if sd_size > p_security_descriptor_size[0]:
@@ -480,11 +525,7 @@ class BaseFileSystemOperations:
             p_security_descriptor_size[0] = sd_size
 
             if security_descriptor != ffi.NULL:
-                ffi.memmove(
-                    security_descriptor,
-                    sd,
-                    sd_size,
-                )
+                ffi.memmove(security_descriptor, sd, sd_size)
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -494,8 +535,7 @@ class BaseFileSystemOperations:
     # ~~~ SET_SECURITY ~~~
 
     def ll_set_security(
-        self, file_context,
-        security_information, modification_descriptor
+        self, file_context, security_information, modification_descriptor
     ):
         """
         Set file or directory security descriptor.
@@ -503,7 +543,9 @@ class BaseFileSystemOperations:
         # TODO...
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.set_security(cooked_file_context, security_information, modification_descriptor)
+            self.set_security(
+                cooked_file_context, security_information, modification_descriptor
+            )
 
         except NTStatusError as exc:
             return exc.value
@@ -515,7 +557,9 @@ class BaseFileSystemOperations:
 
     # ~~~ READ_DIRECTORY ~~~
 
-    def ll_read_directory(self, file_context, pattern, marker, buffer, length, p_bytes_transferred):
+    def ll_read_directory(
+        self, file_context, pattern, marker, buffer, length, p_bytes_transferred
+    ):
         """
         Read a directory.
         """
@@ -535,7 +579,7 @@ class BaseFileSystemOperations:
         for entry in entries:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
-            file_name = entry['file_name']
+            file_name = entry["file_name"]
             file_name_size = (len(file_name) + 1) * 2  # WCHAR string + NULL byte
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
