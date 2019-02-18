@@ -4,34 +4,19 @@ from .bindings import ffi, lib
 from .winstuff import cook_ntstatus, nt_success, cook_ntstatus
 
 
-def joe_la_pocav(func):
-    @wraps(func)
-    def _wrapper(*args, **kwargs):
-        # print(f"POCAV=> {func.__name__}({args}, {kwargs})")
-        ret = func(*args, **kwargs)
-        if ret is not None and not nt_success(ret):
-            print(f"---------------- ERROR --- {cook_ntstatus(ret)!r}")
-        return ret
-
-    return _wrapper
-
-
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetVolumeInfo(FileSystem, VolumeInfo):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_volume_info(VolumeInfo)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetVolumeLabel(FileSystem, VolumeLabel, VolumeInfo):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_set_volume_label(VolumeLabel, VolumeInfo)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetSecurityByName(
     FileSystem,
     FileName,
@@ -49,7 +34,6 @@ def _trampolin_fs_GetSecurityByName(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Create(
     FileSystem,
     FileName,
@@ -75,7 +59,6 @@ def _trampolin_fs_Create(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Open(
     FileSystem, FileName, CreateOptions, GrantedAccess, PFileContext, FileInfo
 ):
@@ -86,7 +69,6 @@ def _trampolin_fs_Open(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Overwrite(
     FileSystem,
     FileContext,
@@ -102,21 +84,18 @@ def _trampolin_fs_Overwrite(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Cleanup(FileSystem, FileContext, FileName, Flags):
     user_context = ffi.from_handle(FileSystem.UserContext)
     user_context.ll_cleanup(FileContext, FileName, Flags)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Close(FileSystem, FileContext):
     user_context = ffi.from_handle(FileSystem.UserContext)
     user_context.ll_close(FileContext)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Read(
     FileSystem, FileContext, Buffer, Offset, Length, PBytesTransferred
 ):
@@ -125,7 +104,6 @@ def _trampolin_fs_Read(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Write(
     FileSystem,
     FileContext,
@@ -151,21 +129,18 @@ def _trampolin_fs_Write(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Flush(FileSystem, FileContext, FileInfo):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_flush(FileContext, FileInfo)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetFileInfo(FileSystem, FileContext, FileInfo):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_file_info(FileContext, FileInfo)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetBasicInfo(
     FileSystem,
     FileContext,
@@ -189,7 +164,6 @@ def _trampolin_fs_SetBasicInfo(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetFileSize(
     FileSystem, FileContext, NewSize, SetAllocationSize, FileInfo
 ):
@@ -200,14 +174,12 @@ def _trampolin_fs_SetFileSize(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_CanDelete(FileSystem, FileContext, FileName):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_can_delete(FileContext, FileName)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Rename(
     FileSystem, FileContext, FileName, NewFileName, ReplaceIfExists
 ):
@@ -216,7 +188,6 @@ def _trampolin_fs_Rename(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetSecurity(
     FileSystem, FileContext, SecurityDescriptor, PSecurityDescriptorSize
 ):
@@ -227,7 +198,6 @@ def _trampolin_fs_GetSecurity(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetSecurity(
     FileSystem, FileContext, SecurityInformation, ModificationDescriptor
 ):
@@ -238,7 +208,6 @@ def _trampolin_fs_SetSecurity(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_ReadDirectory(
     FileSystem, FileContext, Pattern, Marker, Buffer, Length, PBytesTransferred
 ):
@@ -249,7 +218,6 @@ def _trampolin_fs_ReadDirectory(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_ResolveReparsePoints(
     FileSystem,
     FileName,
@@ -266,28 +234,24 @@ def _trampolin_fs_ResolveReparsePoints(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetReparsePoint(FileSystem, FileContext, FileName, Buffer, PSize):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_reparse_point(FileContext, FileName, Buffer, PSize)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetReparsePoint(FileSystem, FileContext, FileName, Buffer, Size):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_set_reparse_point(FileContext, FileName, Buffer, Size)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_DeleteReparsePoint(FileSystem, FileContext, FileName, Buffer, Size):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_delete_reparse_point(FileContext, FileName, Buffer, Size)
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetStreamInfo(
     FileSystem, FileContext, Buffer, Length, PBytesTransferred
 ):
@@ -298,7 +262,6 @@ def _trampolin_fs_GetStreamInfo(
 
 
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_GetDirInfoByName(FileSystem, FileContext, FileName, DirInfo):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_dir_info_by_name(FileContext, FileName, DirInfo)
@@ -306,7 +269,6 @@ def _trampolin_fs_GetDirInfoByName(FileSystem, FileContext, FileName, DirInfo):
 
 # WINFSP VERSION >= 1.4
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_Control(
     FileSystem,
     FileContext,
@@ -331,7 +293,6 @@ def _trampolin_fs_Control(
 
 # WINFSP VERSION >= 1.4
 @ffi.def_extern()
-@joe_la_pocav
 def _trampolin_fs_SetDelete(FileSystem, FileContext, FileName, DeleteFile):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_set_delete(FileContext, FileName, DeleteFile)
