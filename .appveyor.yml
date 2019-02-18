@@ -41,9 +41,9 @@ deploy_script:
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=touilleMan                         >> %USERPROFILE%\\.pypirc
-  - echo password="%PYPI_PASSWORD%"                  >> %USERPROFILE%\\.pypirc
+  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set PATH=%BK_PATH%
   - set HOME=%USERPROFILE%
-  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --skip-existing dist/*.whl" 2>$null } Else { write-output "Not on a tag, won't deploy to pypi"}
+  - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --verbose --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
   - echo "Finished Artifact Deployment"
