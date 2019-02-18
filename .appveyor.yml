@@ -12,7 +12,7 @@ environment:
     - PYTHON: C:\Python37
     - PYTHON: C:\Python37-x64
   PYPI_PASSWORD:
-    secure: YFdsigZEYNmPA6dCIKuIV4d1T1YMI8YtNHolln9MypY=
+    secure: FvghJk86DJjHb+s6i64jqUeZIRvimIvwAUIeyqX2TUmYdZJ0mVX0GnJhwgrpdW0hryfoZuwkvWV2+iJe8EkHmw==
 
 build_script:
   - choco install winfsp -y --version=1.4.19016
@@ -46,7 +46,7 @@ deploy_script:
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
   - echo username=touilleMan                         >> %USERPROFILE%\\.pypirc
-  - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
+  - echo password="%PYPI_PASSWORD%"                  >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set PATH=%BK_PATH%
   - set HOME=%USERPROFILE%
