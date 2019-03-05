@@ -8,7 +8,7 @@ from winfspy import (
     FileSystem, BaseFileSystemOperations, enable_debug_log, FILE_ATTRIBUTE, CREATE_FILE_CREATE_OPTIONS,
     NTStatusObjectNameNotFound, NTStatusDirectoryNotEmpty
 )
-from winfspy.plumbing.winstuff import filetime_now, security_descriptor_factory
+from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
 
 thread_lock = threading.Lock()
@@ -38,7 +38,7 @@ class BaseFileObj:
         self.change_time = now
         self.index_number = 0
 
-        self.security_descriptor, self.security_descriptor_size = security_descriptor_factory("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
+        self.security_descriptor = SecurityDescriptor("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)")
 
     def get_file_info(self):
         return {
@@ -82,6 +82,7 @@ class FolderObj(BaseFileObj):
 class OpenedObj:
     def __init__(self, file_obj):
         self.file_obj = file_obj
+
 
 count = 0
 def logcounted(msg, **kwargs):
@@ -139,10 +140,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             print(f'=================================== {file_name!r}')
             raise NTStatusObjectNameNotFound()
 
-        return {
-            'file_attributes': file_obj.attributes,
-            'security_descriptor': None  # TODO
-        }
+        return file_obj.attributes, file_obj.security_descriptor.handle, file_obj.security_descriptor.size
 
     @threadsafe
     def create(
@@ -183,6 +181,8 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self, file_context
     ):
         logcounted("get_security", file_context=file_context)
+        sd = file_context.file_obj.security_descriptor
+        return sd.handle, sd.size
 
     @threadsafe
     def set_security(

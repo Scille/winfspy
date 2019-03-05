@@ -179,6 +179,11 @@ BOOL ConvertStringSecurityDescriptorToSecurityDescriptorW(
 );
 
 
+HLOCAL LocalFree(
+  HLOCAL hMem
+);
+
+
 /******************************************************
  *                WinFSP fsctl.h stuff                *
  ******************************************************/

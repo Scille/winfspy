@@ -1,6 +1,19 @@
-from .plumbing.winstuff import NTSTATUS, security_descriptor_factory
+from functools import wraps
+
+from .plumbing.winstuff import NTSTATUS, SecurityDescriptor
 from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
+
+
+def debug_spy(fn):
+    # @wraps(fn)
+    # def wrapper(*args, **kwargs):
+    #     print(f'====> {fn.__name__}({args}, {kwargs})')
+    #     ret = fn(*args, **kwargs)
+    #     print(f'<==== {fn.__name__} -> {ret}')
+    #     return ret
+    # return wrapper
+    return fn
 
 
 class BaseFileContext:
@@ -25,6 +38,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_VOLUME_INFO ~~~
 
+    @debug_spy
     def ll_get_volume_info(self, volume_info) -> NTSTATUS:
         """
         Get volume information.
@@ -57,6 +71,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_VOLUME_LABEL ~~~
 
+    @debug_spy
     def ll_set_volume_label(self, volume_label, volume_info) -> NTSTATUS:
         """
         Set volume label.
@@ -78,6 +93,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_SECURITY_BY_NAME ~~~
 
+    @debug_spy
     def ll_get_security_by_name(
         self,
         file_name,
@@ -90,23 +106,17 @@ class BaseFileSystemOperations:
         """
         cooked_file_name = ffi.string(file_name)
         try:
-            ret = self.get_security_by_name(cooked_file_name)
+            fa, sd, sd_size = self.get_security_by_name(cooked_file_name)
 
         except NTStatusError as exc:
             return exc.value
 
-        # TODO...
-        sd, sd_size = security_descriptor_factory(
-            "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
-        )
-
         # Get file attributes
         if p_file_attributes_or_reparse_point_index != ffi.NULL:
             # TODO: wrap attributes with an enum ?
-            p_file_attributes_or_reparse_point_index[0] = ret["file_attributes"]
+            p_file_attributes_or_reparse_point_index[0] = fa
 
         # Get file security
-        # TODO
         if p_security_descriptor_size != ffi.NULL:
             if sd_size > p_security_descriptor_size[0]:
                 return NTSTATUS.STATUS_BUFFER_OVERFLOW
@@ -117,11 +127,15 @@ class BaseFileSystemOperations:
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_security_by_name(self, file_name) -> dict:
+    def get_security_by_name(self, file_name):
+        """
+        Returns: (file_attributes, security_descriptor, security_descriptor_size)
+        """
         raise NotImplementedError()
 
     # ~~~ CREATE ~~~
 
+    @debug_spy
     def ll_create(
         self,
         file_name,
@@ -175,6 +189,7 @@ class BaseFileSystemOperations:
 
     # ~~~ OPEN ~~~
 
+    @debug_spy
     def ll_open(
         self, file_name, create_options, granted_access, p_file_context, file_info
     ) -> NTSTATUS:
@@ -203,6 +218,7 @@ class BaseFileSystemOperations:
 
     # ~~~ OVERWRITE ~~~
 
+    @debug_spy
     def ll_overwrite(
         self,
         file_context,
@@ -233,6 +249,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CLEANUP ~~~
 
+    @debug_spy
     def ll_cleanup(self, file_context, file_name, flags: int) -> None:
         """
 		Cleanup a file.
@@ -254,6 +271,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CLOSE ~~~
 
+    @debug_spy
     def ll_close(self, file_context) -> None:
         """
 		Close a file.
@@ -272,6 +290,7 @@ class BaseFileSystemOperations:
 
     # ~~~ READ ~~~
 
+    @debug_spy
     def ll_read(
         self, file_context, buffer, offset, length, p_bytes_transferred
     ) -> NTSTATUS:
@@ -295,6 +314,7 @@ class BaseFileSystemOperations:
 
     # ~~~ WRITE ~~~
 
+    @debug_spy
     def ll_write(
         self,
         file_context,
@@ -331,13 +351,14 @@ class BaseFileSystemOperations:
 
     # ~~~ FLUSH ~~~
 
+    @debug_spy
     def ll_flush(self, file_context, file_info) -> NTSTATUS:
         """
         Flush a file or volume.
         """
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            return self.flush(cooked_file_context)
+            self.flush(cooked_file_context)
 
         except NTStatusError as exc:
             return exc.value
@@ -349,6 +370,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_FILE_INFO ~~~
 
+    @debug_spy
     def ll_get_file_info(self, file_context, file_info) -> NTSTATUS:
         """
         Get file or directory information.
@@ -379,6 +401,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_BASIC_INFO ~~~
 
+    @debug_spy
     def ll_set_basic_info(
         self,
         file_context,
@@ -389,7 +412,6 @@ class BaseFileSystemOperations:
         change_time,
         file_info,
     ):
-
         """
         Set file or directory basic information.
         """
@@ -435,6 +457,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_FILE_SIZE ~~~
 
+    @debug_spy
     def ll_set_file_size(self, file_context, new_size, set_allocation_size, file_info):
         """
         Set file/allocation size.
@@ -454,6 +477,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CAN_DELETE ~~~
 
+    @debug_spy
     def ll_can_delete(self, file_context, file_name) -> NTSTATUS:
         """
         Determine whether a file or directory can be deleted.
@@ -473,6 +497,7 @@ class BaseFileSystemOperations:
 
     # ~~~ RENAME ~~~
 
+    @debug_spy
     def ll_rename(self, file_context, file_name, new_file_name, replace_if_exists):
         """
         Renames a file or directory.
@@ -501,23 +526,19 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_SECURITY ~~~
 
+    @debug_spy
     def ll_get_security(
         self, file_context, security_descriptor, p_security_descriptor_size
     ):
         """
         Get file or directory security descriptor.
         """
-        # TODO...
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.get_security(cooked_file_context)
+            sd, sd_size = self.get_security(cooked_file_context)
 
         except NTStatusError as exc:
             return exc.value
-
-        sd, sd_size = security_descriptor_factory(
-            "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
-        )
 
         if p_security_descriptor_size != ffi.NULL:
             if sd_size > p_security_descriptor_size[0]:
@@ -530,17 +551,20 @@ class BaseFileSystemOperations:
         return NTSTATUS.STATUS_SUCCESS
 
     def get_security(self, file_context):
+        """
+        Returns: (security_descriptor, security_descriptor_size)
+        """
         raise NotImplementedError()
 
     # ~~~ SET_SECURITY ~~~
 
+    @debug_spy
     def ll_set_security(
         self, file_context, security_information, modification_descriptor
     ):
         """
         Set file or directory security descriptor.
         """
-        # TODO...
         cooked_file_context = ffi.from_handle(file_context)
         try:
             self.set_security(
@@ -557,6 +581,7 @@ class BaseFileSystemOperations:
 
     # ~~~ READ_DIRECTORY ~~~
 
+    @debug_spy
     def ll_read_directory(
         self, file_context, pattern, marker, buffer, length, p_bytes_transferred
     ):
@@ -600,6 +625,7 @@ class BaseFileSystemOperations:
 
     # ~~~ RESOLVE_REPARSE_POINTS ~~~
 
+    @debug_spy
     def ll_resolve_reparse_points(self, file_context):
         """
         Resolve reparse points.
@@ -614,6 +640,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_REPARSE_POINT ~~~
 
+    @debug_spy
     def ll_get_reparse_point(self, file_context, file_name, buffer, size):
         """
         Get reparse point.
@@ -628,6 +655,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_REPARSE_POINT ~~~
 
+    @debug_spy
     def ll_set_reparse_point(self, file_context):
         """
         Set reparse point.
@@ -642,6 +670,7 @@ class BaseFileSystemOperations:
 
     # ~~~ DELETE_REPARSE_POINT ~~~
 
+    @debug_spy
     def ll_delete_reparse_point(self, file_context, file_name, buffer, size):
         """
 		Delete reparse point.
@@ -656,6 +685,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_STREAM_INFO ~~~
 
+    @debug_spy
     def ll_get_stream_info(self, file_context):
         """
 		Get named streams information.
@@ -670,6 +700,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_DIR_INFO_BY_NAME ~~~
 
+    @debug_spy
     def ll_get_dir_info_by_name(self, file_context):
         """
 		Set volume label.
@@ -684,6 +715,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CONTROL ~~~
 
+    @debug_spy
     def ll_control(self, file_context):
         # TODO
         cooked_file_context = ffi.from_handle(file_context)
@@ -695,6 +727,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_DELETE ~~~
 
+    @debug_spy
     def ll_set_delete(self, file_context):
         # TODO
         cooked_file_context = ffi.from_handle(file_context)

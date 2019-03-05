@@ -8,18 +8,24 @@ from .bindings import ffi, lib
 
 
 # TODO: should use `lib.LocalFree` to free generated security descriptor at one point
-def security_descriptor_factory(str_security_descriptor):
-    psd = ffi.new("SECURITY_DESCRIPTOR**")
-    psd_size = ffi.new("ULONG*")
-    if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
-        str_security_descriptor,
-        lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION,
-        psd,
-        psd_size,
-    ):
-        raise RuntimeError(f"error: {cook_ntstatus(lib.GetLastError())}")
-    # assert lib.IsValidSecurityDescriptor(psd[0])
-    return psd[0], psd_size[0]
+class SecurityDescriptor:
+    # see https://docs.microsoft.com/fr-fr/windows/desktop/SecAuthZ/security-descriptor-string-format
+    def __init__(self, string_format):
+        psd = ffi.new("SECURITY_DESCRIPTOR**")
+        psd_size = ffi.new("ULONG*")
+        if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            string_format,
+            lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION,
+            psd,
+            psd_size,
+        ):
+            raise RuntimeError(f"error: {cook_ntstatus(lib.GetLastError())}")
+        # assert lib.IsValidSecurityDescriptor(psd[0])
+        self.handle = psd[0]
+        self.size = psd_size[0]
+
+    def __del__(self):
+        lib.LocalFree(self.handle)
 
 
 class FILE_ATTRIBUTE(enum.IntEnum):
