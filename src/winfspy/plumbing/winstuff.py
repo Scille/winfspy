@@ -14,12 +14,12 @@ class SecurityDescriptor:
         psd = ffi.new("SECURITY_DESCRIPTOR**")
         psd_size = ffi.new("ULONG*")
         if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
-            string_format,
-            lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION,
-            psd,
-            psd_size,
+            string_format, lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION, psd, psd_size
         ):
-            raise RuntimeError(f"error: {cook_ntstatus(lib.GetLastError())}")
+            raise RuntimeError(
+                f"Cannot create security descriptor `{string_format}`: "
+                f"{cook_ntstatus(lib.GetLastError())}"
+            )
         # assert lib.IsValidSecurityDescriptor(psd[0])
         self.handle = psd[0]
         self.size = psd_size[0]
