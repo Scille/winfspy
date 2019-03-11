@@ -7,7 +7,7 @@ environment:
     - PYTHON: C:\Python37
     - PYTHON: C:\Python37-x64
   PYPI_PASSWORD:
-    secure: FvghJk86DJjHb+s6i64jqUeZIRvimIvwAUIeyqX2TUmYdZJ0mVX0GnJhwgrpdW0hryfoZuwkvWV2+iJe8EkHmw==
+    secure: UekbvbY3VJX53NJLchbcY+5ZfdoQQ8LwAIR+9SlacvjWGlayfn1+WF9TtIy0koc8
 
 build_script:
   - choco install winfsp -y --version=1.4.19016
