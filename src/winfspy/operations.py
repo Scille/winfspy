@@ -1,6 +1,7 @@
+from typing import List
 from functools import wraps
 
-from .plumbing.winstuff import NTSTATUS, SecurityDescriptor
+from .plumbing.winstuff import NTSTATUS
 from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
 
@@ -596,22 +597,22 @@ class BaseFileSystemOperations:
             coocked_marker = None
 
         try:
-            entries = self.read_directory(cooked_file_context, coocked_marker)
+            entries_info = self.read_directory(cooked_file_context, coocked_marker)
 
         except NTStatusError as exc:
             return exc.value
 
-        for entry in entries:
+        for entry_info in entries_info:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
-            file_name = entry["file_name"]
+            file_name = entry_info["file_name"]
             file_name_size = (len(file_name) + 1) * 2  # WCHAR string + NULL byte
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
             dir_info.FileNameBuf = file_name
             dir_info.Size = dir_info_size
-            configure_file_info(dir_info.FileInfo, **entry)
+            configure_file_info(dir_info.FileInfo, **entry_info)
             if not lib.FspFileSystemAddDirInfo(
                 dir_info, buffer, length, p_bytes_transferred
             ):
@@ -620,52 +621,107 @@ class BaseFileSystemOperations:
         lib.FspFileSystemAddDirInfo(ffi.NULL, buffer, length, p_bytes_transferred)
         return NTSTATUS.STATUS_SUCCESS
 
-    def read_directory(self, file_context, marker):
+    def read_directory(self, file_context, marker: str) -> List[dict]:
+        """
+        Returns a list of info dict.
+        Info dict fields:
+            file_name
+            creation_time
+            last_access_time
+            last_write_time
+            change_time
+            index_number
+            file_attributes
+            allocation_size
+            file_size
+        """
         raise NotImplementedError()
 
     # ~~~ RESOLVE_REPARSE_POINTS ~~~
 
     @debug_spy
-    def ll_resolve_reparse_points(self, file_context):
+    def ll_resolve_reparse_points(
+        self,
+        file_name,
+        reparse_point_index: int,
+        resolve_last_path_component: bool,
+        p_io_status,
+        buffer,
+        p_size,
+    ):
         """
         Resolve reparse points.
         """
-        # TODO
-        cooked_file_context = ffi.from_handle(file_context)
-        self.resolve_reparse_points(cooked_file_context)
+        cooked_file_name = ffi.string(file_name)
+        # TODO: handle p_io_status, buffer and p_size here
+        try:
+            self.resolve_reparse_points(
+                cooked_file_name,
+                reparse_point_index,
+                resolve_last_path_component,
+                p_io_status,
+                buffer,
+                p_size,
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def resolve_reparse_points(self, file_context):
+    def resolve_reparse_points(
+        self,
+        file_name: str,
+        reparse_point_index: int,
+        resolve_last_path_component: bool,
+        p_io_status,
+        buffer,
+        p_size,
+    ):
         raise NotImplementedError()
 
     # ~~~ GET_REPARSE_POINT ~~~
 
     @debug_spy
-    def ll_get_reparse_point(self, file_context, file_name, buffer, size):
+    def ll_get_reparse_point(self, file_context, file_name, buffer, p_size):
         """
         Get reparse point.
         """
-        # TODO
         cooked_file_context = ffi.from_handle(file_context)
-        self.get_reparse_point(cooked_file_context, file_name, buffer, size)
+        cooked_file_name = ffi.string(file_name)
+        # TODO: handle buffer and p_size here
+        try:
+            self.get_reparse_point(
+                cooked_file_context, cooked_file_name, buffer, p_size
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_reparse_point(self, file_context, file_name, buffer, size):
+    def get_reparse_point(self, file_context, file_name: str, buffer, p_size):
         raise NotImplementedError()
 
     # ~~~ SET_REPARSE_POINT ~~~
 
     @debug_spy
-    def ll_set_reparse_point(self, file_context):
+    def ll_set_reparse_point(self, file_context, file_name, buffer, size):
         """
         Set reparse point.
         """
-        # TODO
         cooked_file_context = ffi.from_handle(file_context)
-        self.set_reparse_point(cooked_file_context)
+        cooked_file_name = ffi.string(file_name)
+        # TODO: handle buffer and size here
+        try:
+            self.set_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def set_reparse_point(self, file_context):
+    def set_reparse_point(self, file_context, file_name: str, buffer, size: int):
         raise NotImplementedError()
 
     # ~~~ DELETE_REPARSE_POINT ~~~
@@ -675,64 +731,151 @@ class BaseFileSystemOperations:
         """
 		Delete reparse point.
 		"""
-        # TODO
         cooked_file_context = ffi.from_handle(file_context)
-        self.delete_reparse_point(cooked_file_context, file_name, buffer, size)
+        cooked_file_name = ffi.string(file_name)
+        # TODO: handle buffer and size here
+        try:
+            self.delete_reparse_point(
+                cooked_file_context, cooked_file_name, buffer, size
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def delete_reparse_point(self, file_context, file_name, buffer, size):
+    def delete_reparse_point(self, file_context, file_name: str, buffer, size: int):
         raise NotImplementedError()
 
     # ~~~ GET_STREAM_INFO ~~~
 
     @debug_spy
-    def ll_get_stream_info(self, file_context):
+    def ll_get_stream_info(self, file_context, buffer, length, p_bytes_transferred):
         """
-		Get named streams information.
+        Get named streams information.
+        Must set `volum_params.named_streams` to 1 for this method to be used.
 		"""
-        # TODO
-        cooked_file_context = ffi.from_handle(file_context)
-        self.get_stream_info(cooked_file_context)
+        cooked_file_context = ffi.from_handle(
+            file_context, buffer, length, p_bytes_transferred
+        )
+        # TODO: handle p_bytes_transferred here
+        try:
+            self.get_stream_info(
+                cooked_file_context, buffer, length, p_bytes_transferred
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_stream_info(self, file_context):
+    def get_stream_info(self, file_context, buffer, length: int, p_bytes_transferred):
         raise NotImplementedError()
 
     # ~~~ GET_DIR_INFO_BY_NAME ~~~
 
     @debug_spy
-    def ll_get_dir_info_by_name(self, file_context):
+    def ll_get_dir_info_by_name(self, file_context, file_name, dir_info):
         """
-		Set volume label.
+        Must set `volum_params.pass_query_directory_file_name` to 1 for
+        this method to be used.
 		"""
-        # TODO
         cooked_file_context = ffi.from_handle(file_context)
-        self.get_dir_info_by_name(cooked_file_context)
+        cooked_file_name = ffi.string(file_name)
+        try:
+            # TODO handle dir_info here
+            info = self.get_dir_info_by_name(
+                cooked_file_context, cooked_file_name, dir_info
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
+        # dir_info is already allocated for us, but we have to retreive it
+        # custom size (it is allocated along with it last field)
+        file_name_size = (len(cooked_file_name) + 1) * 2  # WCHAR string + NULL byte
+        dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
+        dir_info.FileNameBuf = cooked_file_name
+        configure_file_info(dir_info.FileInfo, **info)
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_dir_info_by_name(self, file_context):
+    def get_dir_info_by_name(self, file_context, file_name: str) -> dict:
+        """
+        Returned dict fields:
+            creation_time
+            last_access_time
+            last_write_time
+            change_time
+            index_number
+            file_attributes
+            allocation_size
+            file_size
+        """
         raise NotImplementedError()
 
     # ~~~ CONTROL ~~~
 
     @debug_spy
-    def ll_control(self, file_context):
-        # TODO
+    def ll_control(
+        self,
+        file_context,
+        control_code,
+        input_buffer,
+        input_buffer_length,
+        output_buffer,
+        output_buffer_length,
+        p_bytes_transferred,
+    ):
         cooked_file_context = ffi.from_handle(file_context)
-        self.control(cooked_file_context)
+        try:
+            # TODO handle input/output buffers and p_bytes_transferred here
+            self.control(
+                cooked_file_context,
+                control_code,
+                input_buffer,
+                input_buffer_length,
+                output_buffer,
+                output_buffer_length,
+                p_bytes_transferred,
+            )
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def control(self, file_context):
+    def control(
+        self,
+        file_context,
+        control_code,
+        input_buffer,
+        input_buffer_length,
+        output_buffer,
+        output_buffer_length,
+        p_bytes_transferred,
+    ):
+        """
+        Must set `volum_params.device_control` to 1 for this method to be used.
+        """
         raise NotImplementedError()
 
     # ~~~ SET_DELETE ~~~
 
     @debug_spy
-    def ll_set_delete(self, file_context):
-        # TODO
+    def ll_set_delete(self, file_context, file_name, delete_file):
         cooked_file_context = ffi.from_handle(file_context)
-        self.set_delete(cooked_file_context)
+        cooked_file_name = ffi.string(file_name)
+        try:
+            self.set_delete(cooked_file_context, cooked_file_name, delete_file)
+
+        except NTStatusError as exc:
+            return exc.value
+
         return NTSTATUS.STATUS_SUCCESS
 
-    def set_delete(self, file_context):
-        raise NotImplementedError()
+    def set_delete(self, file_context, file_name: str, delete_file: bool):
+        """
+        If not overloaded, WinFSP fallbacks on `can_delete` and never call this
+        method.
+        """
+        pass

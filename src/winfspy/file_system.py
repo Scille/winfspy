@@ -106,7 +106,12 @@ class FileSystem:
         self.operations = operations
 
         self._volume_params = _volume_params_factory(**volume_params)
-        self._file_system_interface = file_system_interface_trampoline_factory()
+        set_delete_available = (
+            type(operations).set_delete is not BaseFileSystemOperations.set_delete
+        )
+        self._file_system_interface = file_system_interface_trampoline_factory(
+            set_delete_available=set_delete_available
+        )
         self._file_system_ptr = ffi.new("FSP_FILE_SYSTEM**")
         result = lib.FspFileSystemCreate(
             lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME,

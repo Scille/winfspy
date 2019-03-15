@@ -1,7 +1,4 @@
-from functools import wraps
-
 from .bindings import ffi, lib
-from .winstuff import cook_ntstatus, nt_success, cook_ntstatus
 
 
 @ffi.def_extern()
@@ -298,7 +295,7 @@ def _trampolin_fs_SetDelete(FileSystem, FileContext, FileName, DeleteFile):
     return user_context.ll_set_delete(FileContext, FileName, DeleteFile)
 
 
-def file_system_interface_trampoline_factory():
+def file_system_interface_trampoline_factory(set_delete_available: bool):
     file_system_interface = ffi.new("FSP_FILE_SYSTEM_INTERFACE*")
     file_system_interface.GetVolumeInfo = lib._trampolin_fs_GetVolumeInfo
     file_system_interface.SetVolumeLabel = lib._trampolin_fs_SetVolumeLabel
@@ -329,7 +326,11 @@ def file_system_interface_trampoline_factory():
     # requires  WINFSP VERSION >= 1.4
     try:
         file_system_interface.Control = lib._trampolin_fs_Control
-        file_system_interface.SetDelete = lib._trampolin_fs_SetDelete
+
+        if set_delete_available:
+            # If not available, WinFSP fallback to CanDelete
+            file_system_interface.SetDelete = lib._trampolin_fs_SetDelete
+
     except AttributeError:
         pass
 
