@@ -6,15 +6,28 @@ from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
 
 
-def debug_spy(fn):
-    # @wraps(fn)
-    # def wrapper(*args, **kwargs):
-    #     print(f'====> {fn.__name__}({args}, {kwargs})')
-    #     ret = fn(*args, **kwargs)
-    #     print(f'<==== {fn.__name__} -> {ret}')
-    #     return ret
-    # return wrapper
-    return fn
+if False:
+    import logging
+    import _thread
+    logger = logging.getLogger('winftpy')
+
+    def debug_spy(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            ident = _thread.get_ident()
+            logger.debug("----> %X: %r(%r, %r)", ident, fn.__name__, args, kwargs)
+            try:
+                result = fn(*args, **kwargs)
+            except BaseException as e:
+                logger.exception("---- Error %r: %r", fn.__name__, e)
+                raise
+            logger.debug("<---- %X: %r -> %r", ident, fn.__name__, result)
+            return result
+
+        return wrapper
+else:
+    def debug_spy(fn):
+        return fn
 
 
 class BaseFileContext:
@@ -237,7 +250,7 @@ class BaseFileSystemOperations:
                 cooked_file_context,
                 file_attributes,
                 replace_file_attributes,
-                allocation_size,
+                allocation_size
             )
 
         except NTStatusError as exc:
@@ -606,7 +619,7 @@ class BaseFileSystemOperations:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
-            file_name_size = (len(file_name) + 1) * 2  # WCHAR string + NULL byte
+            file_name_size = len(file_name) * 2  # WCHAR string no NULL byte
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
@@ -785,15 +798,14 @@ class BaseFileSystemOperations:
         try:
             # TODO handle dir_info here
             info = self.get_dir_info_by_name(
-                cooked_file_context, cooked_file_name, dir_info
-            )
+                cooked_file_context, cooked_file_name)
 
         except NTStatusError as exc:
             return exc.value
 
         # dir_info is already allocated for us, but we have to retreive it
         # custom size (it is allocated along with it last field)
-        file_name_size = (len(cooked_file_name) + 1) * 2  # WCHAR string + NULL byte
+        file_name_size = len(cooked_file_name) * 2  # WCHAR string no NULL byte
         dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
         dir_info.FileNameBuf = cooked_file_name
         configure_file_info(dir_info.FileInfo, **info)

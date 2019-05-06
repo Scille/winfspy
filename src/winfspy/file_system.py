@@ -31,7 +31,10 @@ def _volume_params_factory(
     pass_query_directory_file_name=0,
     flush_and_purge_on_cleanup=0,
     device_control=0,
-    um_file_context_is_user_context2=0,
+    um_file_context_is_user_context2=1,
+        # for correct handling of file_context in operation.py
+        # um_file_context_is_user_context2 must be 1
+        # (see https://github.com/billziss-gh/winfsp/issues/231)
     um_file_context_is_full_context=0,
     um_reserved_flags=0,
     km_reserved_flags=0,
@@ -129,7 +132,7 @@ class FileSystem:
         self._file_system_ptr[0].UserContext = self._operations_handle
 
         if debug:
-            lib.FspFileSystemSetDebugLog(self._file_system_ptr, 1)
+            lib.FspFileSystemSetDebugLogF(self._file_system_ptr[0], 1)
 
     def start(self):
         if self.started:
