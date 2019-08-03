@@ -10,7 +10,7 @@ environment:
     secure: UekbvbY3VJX53NJLchbcY+5ZfdoQQ8LwAIR+9SlacvjWGlayfn1+WF9TtIy0koc8
 
 build_script:
-  - choco install winfsp -y --version=1.4.19016
+  - choco install winfsp -y --version=1.4.19049
   - git --no-pager log -n2
   - echo %APPVEYOR_REPO_COMMIT%
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;;%PATH%
