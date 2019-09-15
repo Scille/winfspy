@@ -324,7 +324,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         file_obj = file_context.file_obj
 
         if offset >= len(file_obj.data):
-            raise NTStatusEndOfFile()
+            return b""
 
         return file_obj.data[offset:offset+length]
 
