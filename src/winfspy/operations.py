@@ -245,7 +245,7 @@ class BaseFileSystemOperations:
 
         return self.ll_get_file_info(file_context, file_info)
 
-    def overwrite(self, file_context) -> None:
+    def overwrite(self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int) -> None:
         raise NotImplementedError()
 
     # ~~~ CLEANUP ~~~
