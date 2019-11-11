@@ -606,7 +606,9 @@ class BaseFileSystemOperations:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
-            file_name_size = (len(file_name) + 1) * 2  # WCHAR string + NULL byte
+            file_name_size = (
+                len(file_name.encode("utf16")) + 1
+            )  # WCHAR string + NULL byte
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
