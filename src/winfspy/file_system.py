@@ -129,7 +129,7 @@ class FileSystem:
         self._file_system_ptr[0].UserContext = self._operations_handle
 
         if debug:
-            lib.FspFileSystemSetDebugLog(self._file_system_ptr, 1)
+            lib.FspFileSystemSetDebugLogF(self._file_system_ptr[0], 1)
 
     def start(self):
         if self.started:
