@@ -793,7 +793,7 @@ class BaseFileSystemOperations:
         try:
             # TODO handle dir_info here
             info = self.get_dir_info_by_name(
-                cooked_file_context, cooked_file_name, dir_info
+                cooked_file_context, cooked_file_name
             )
 
         except NTStatusError as exc:
