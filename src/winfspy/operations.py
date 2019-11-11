@@ -801,7 +801,9 @@ class BaseFileSystemOperations:
 
         # dir_info is already allocated for us, but we have to retreive it
         # custom size (it is allocated along with it last field)
-        file_name_size = (len(cooked_file_name) + 1) * 2  # WCHAR string + NULL byte
+        file_name_size = (
+            len(cooked_file_name.encode("utf16")) + 2
+        )  # WCHAR string + NULL byte
         dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
         dir_info.FileNameBuf = cooked_file_name
         configure_file_info(dir_info.FileInfo, **info)
