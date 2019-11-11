@@ -613,8 +613,8 @@ class BaseFileSystemOperations:
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
             file_name_size = (
-                len(file_name.encode("utf16")) + 1
-            )  # WCHAR string + NULL byte
+                len(file_name.encode("utf16")) + 2
+            )  # WCHAR string + NULL character
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
@@ -803,7 +803,7 @@ class BaseFileSystemOperations:
         # custom size (it is allocated along with it last field)
         file_name_size = (
             len(cooked_file_name.encode("utf16")) + 2
-        )  # WCHAR string + NULL byte
+        )  # WCHAR string + NULL character
         dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
         dir_info.FileNameBuf = cooked_file_name
         configure_file_info(dir_info.FileInfo, **info)
