@@ -143,11 +143,16 @@ class FileSystem:
             raise WinFSPyError(
                 f"Cannot mount file system: {cook_ntstatus(result).name}"
             )
-        lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
+        result = lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
+        if not nt_success(result):
+            raise WinFSPyError(
+                f"Cannot start file system dispatcher: {cook_ntstatus(result).name}"
+            )
 
     def stop(self):
         if not self.started:
             raise FileSystemNotStarted()
         self.started = False
 
+        lib.FspFileSystemStopDispatcher(self._file_system_ptr[0])
         lib.FspFileSystemDelete(self._file_system_ptr[0])
