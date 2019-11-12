@@ -25,7 +25,7 @@ for:
 
     skip_non_tags: true
 
-build_script:
+install:
   - choco install winfsp -y --version=1.4.19049
   - git --no-pager log -n2
   - echo %APPVEYOR_REPO_COMMIT%
@@ -34,13 +34,15 @@ build_script:
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python -m pip install --upgrade pip
   - pip install -r requirements-dev.txt
+
+before_build:
+  - ps: if($env:DEBUG -eq "true") { iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1')) }
+
+build_script:
+  - pre-commit run --all-files
   - pip install .
 
 test_script:
-  # Uncomment this for RDP debug
-  # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-  # Only print output if check failed
-  - pre-commit run --all-files
   - py.test tests/ -vvv
 
 after_test:
