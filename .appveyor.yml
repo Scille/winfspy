@@ -10,10 +10,10 @@ environment:
       RELEASE_ONLY_TARGET: true
     - PYTHON: C:\Python37-x64
       RELEASE_ONLY_TARGET: true
-    - PYTHON: C:\Python38
-      RELEASE_ONLY_TARGET: true
-    - PYTHON: C:\Python38-x64
-      RELEASE_ONLY_TARGET: false
+    # - PYTHON: C:\Python38
+    #   RELEASE_ONLY_TARGET: true
+    # - PYTHON: C:\Python38-x64
+    #   RELEASE_ONLY_TARGET: false
   PYPI_PASSWORD:
     secure: UekbvbY3VJX53NJLchbcY+5ZfdoQQ8LwAIR+9SlacvjWGlayfn1+WF9TtIy0koc8
 
