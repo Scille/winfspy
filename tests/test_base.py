@@ -2,4 +2,4 @@ import winfspy
 
 
 def test_import():
-    pass
+    assert winfspy

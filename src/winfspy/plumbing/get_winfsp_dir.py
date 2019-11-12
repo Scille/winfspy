@@ -18,9 +18,7 @@ def reg32_get_value(rootkey, keyname, valname):
 def get_winfsp_dir(suffix=None):
     path = os.environ.get("WINFSP_LIBRARY_PATH")
     if not path:
-        path = reg32_get_value(
-            reg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir"
-        )
+        path = reg32_get_value(reg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir")
     else:
         raise RuntimeError("Cannot find WinFsp library, is it installed ?")
 

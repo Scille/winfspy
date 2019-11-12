@@ -6,15 +6,24 @@ from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
 
 
-def debug_spy(fn):
-    # @wraps(fn)
-    # def wrapper(*args, **kwargs):
-    #     print(f'====> {fn.__name__}({args}, {kwargs})')
-    #     ret = fn(*args, **kwargs)
-    #     print(f'<==== {fn.__name__} -> {ret}')
-    #     return ret
-    # return wrapper
-    return fn
+if False:
+
+    def debug_spy(fn):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            print(f"====> {fn.__name__}({args}, {kwargs})")
+            ret = fn(*args, **kwargs)
+            print(f"<==== {fn.__name__} -> {ret}")
+            return ret
+
+        return wrapper
+        return fn
+
+
+else:
+
+    def debug_spy(fn):
+        return fn
 
 
 class BaseFileContext:
@@ -200,9 +209,7 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
 
         try:
-            cooked_file_context = self.open(
-                cooked_file_name, create_options, granted_access
-            )
+            cooked_file_context = self.open(cooked_file_name, create_options, granted_access)
 
         except NTStatusError as exc:
             return exc.value
@@ -234,10 +241,7 @@ class BaseFileSystemOperations:
         cooked_file_context = ffi.from_handle(file_context)
         try:
             self.overwrite(
-                cooked_file_context,
-                file_attributes,
-                replace_file_attributes,
-                allocation_size,
+                cooked_file_context, file_attributes, replace_file_attributes, allocation_size,
             )
 
         except NTStatusError as exc:
@@ -246,11 +250,7 @@ class BaseFileSystemOperations:
         return self.ll_get_file_info(file_context, file_info)
 
     def overwrite(
-        self,
-        file_context,
-        file_attributes,
-        replace_file_attributes: bool,
-        allocation_size: int,
+        self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int,
     ) -> None:
         raise NotImplementedError()
 
@@ -259,8 +259,8 @@ class BaseFileSystemOperations:
     @debug_spy
     def ll_cleanup(self, file_context, file_name, flags: int) -> None:
         """
-		Cleanup a file.
-		"""
+        Cleanup a file.
+        """
         cooked_file_context = ffi.from_handle(file_context)
         if file_name:
             cooked_file_name = ffi.string(file_name)
@@ -281,8 +281,8 @@ class BaseFileSystemOperations:
     @debug_spy
     def ll_close(self, file_context) -> None:
         """
-		Close a file.
-		"""
+        Close a file.
+        """
         cooked_file_context = ffi.from_handle(file_context)
         try:
             self.close(cooked_file_context)
@@ -298,9 +298,7 @@ class BaseFileSystemOperations:
     # ~~~ READ ~~~
 
     @debug_spy
-    def ll_read(
-        self, file_context, buffer, offset, length, p_bytes_transferred
-    ) -> NTSTATUS:
+    def ll_read(self, file_context, buffer, offset, length, p_bytes_transferred) -> NTSTATUS:
         """
         Read a file.
         """
@@ -341,11 +339,7 @@ class BaseFileSystemOperations:
 
         try:
             p_bytes_transferred[0] = self.write(
-                cooked_file_context,
-                cooked_buffer,
-                offset,
-                write_to_end_of_file,
-                constrained_io,
+                cooked_file_context, cooked_buffer, offset, write_to_end_of_file, constrained_io,
             )
 
         except NTStatusError as exc:
@@ -472,7 +466,7 @@ class BaseFileSystemOperations:
         cooked_file_context = ffi.from_handle(file_context)
 
         try:
-            ret = self.set_file_size(cooked_file_context, new_size, set_allocation_size)
+            self.set_file_size(cooked_file_context, new_size, set_allocation_size)
 
         except NTStatusError as exc:
             return exc.value
@@ -526,17 +520,13 @@ class BaseFileSystemOperations:
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def rename(
-        self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool
-    ):
+    def rename(self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool):
         raise NotImplementedError()
 
     # ~~~ GET_SECURITY ~~~
 
     @debug_spy
-    def ll_get_security(
-        self, file_context, security_descriptor, p_security_descriptor_size
-    ):
+    def ll_get_security(self, file_context, security_descriptor, p_security_descriptor_size):
         """
         Get file or directory security descriptor.
         """
@@ -566,17 +556,13 @@ class BaseFileSystemOperations:
     # ~~~ SET_SECURITY ~~~
 
     @debug_spy
-    def ll_set_security(
-        self, file_context, security_information, modification_descriptor
-    ):
+    def ll_set_security(self, file_context, security_information, modification_descriptor):
         """
         Set file or directory security descriptor.
         """
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.set_security(
-                cooked_file_context, security_information, modification_descriptor
-            )
+            self.set_security(cooked_file_context, security_information, modification_descriptor)
 
         except NTStatusError as exc:
             return exc.value
@@ -589,9 +575,7 @@ class BaseFileSystemOperations:
     # ~~~ READ_DIRECTORY ~~~
 
     @debug_spy
-    def ll_read_directory(
-        self, file_context, pattern, marker, buffer, length, p_bytes_transferred
-    ):
+    def ll_read_directory(self, file_context, pattern, marker, buffer, length, p_bytes_transferred):
         """
         Read a directory.
         """
@@ -612,18 +596,14 @@ class BaseFileSystemOperations:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
-            file_name_size = (
-                len(file_name.encode("utf16")) + 2
-            )  # WCHAR string + NULL character
+            file_name_size = len(file_name.encode("utf16")) + 2  # WCHAR string + NULL character
             dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
             dir_info.FileNameBuf = file_name
             dir_info.Size = dir_info_size
             configure_file_info(dir_info.FileInfo, **entry_info)
-            if not lib.FspFileSystemAddDirInfo(
-                dir_info, buffer, length, p_bytes_transferred
-            ):
+            if not lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred):
                 return NTSTATUS.STATUS_SUCCESS
 
         lib.FspFileSystemAddDirInfo(ffi.NULL, buffer, length, p_bytes_transferred)
@@ -699,9 +679,7 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
         # TODO: handle buffer and p_size here
         try:
-            self.get_reparse_point(
-                cooked_file_context, cooked_file_name, buffer, p_size
-            )
+            self.get_reparse_point(cooked_file_context, cooked_file_name, buffer, p_size)
 
         except NTStatusError as exc:
             return exc.value
@@ -737,15 +715,13 @@ class BaseFileSystemOperations:
     @debug_spy
     def ll_delete_reparse_point(self, file_context, file_name, buffer, size):
         """
-		Delete reparse point.
-		"""
+        Delete reparse point.
+        """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
         # TODO: handle buffer and size here
         try:
-            self.delete_reparse_point(
-                cooked_file_context, cooked_file_name, buffer, size
-            )
+            self.delete_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
 
         except NTStatusError as exc:
             return exc.value
@@ -762,15 +738,11 @@ class BaseFileSystemOperations:
         """
         Get named streams information.
         Must set `volum_params.named_streams` to 1 for this method to be used.
-		"""
-        cooked_file_context = ffi.from_handle(
-            file_context, buffer, length, p_bytes_transferred
-        )
+        """
+        cooked_file_context = ffi.from_handle(file_context, buffer, length, p_bytes_transferred)
         # TODO: handle p_bytes_transferred here
         try:
-            self.get_stream_info(
-                cooked_file_context, buffer, length, p_bytes_transferred
-            )
+            self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
 
         except NTStatusError as exc:
             return exc.value
@@ -787,7 +759,7 @@ class BaseFileSystemOperations:
         """
         Must set `volum_params.pass_query_directory_file_name` to 1 for
         this method to be used.
-		"""
+        """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
         try:
@@ -799,9 +771,7 @@ class BaseFileSystemOperations:
 
         # dir_info is already allocated for us, but we have to retreive it
         # custom size (it is allocated along with it last field)
-        file_name_size = (
-            len(cooked_file_name.encode("utf16")) + 2
-        )  # WCHAR string + NULL character
+        file_name_size = len(cooked_file_name.encode("utf16")) + 2  # WCHAR string + NULL character
         dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
         dir_info.FileNameBuf = cooked_file_name
         configure_file_info(dir_info.FileInfo, **info)

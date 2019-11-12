@@ -7,6 +7,24 @@ from .win32_filetime import dt_to_filetime, filetime_to_dt, filetime_now
 from .bindings import ffi, lib
 
 
+__all__ = (
+    "dt_to_filetime",
+    "filetime_to_dt",
+    "filetime_now",
+    "SecurityDescriptor",
+    "FILE_ATTRIBUTE",
+    "CREATE_FILE_CREATE_OPTIONS",
+    "NTSTATUS",
+    "nt_success",
+    "nt_information",
+    "nt_warning",
+    "nt_error",
+    "cook_ntstatus",
+    "posix_to_ntstatus",
+    "ntstatus_to_posix",
+)
+
+
 # TODO: should use `lib.LocalFree` to free generated security descriptor at one point
 class SecurityDescriptor:
     # see https://docs.microsoft.com/fr-fr/windows/desktop/SecAuthZ/security-descriptor-string-format

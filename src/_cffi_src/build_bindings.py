@@ -11,6 +11,7 @@ is_64bits = sys.maxsize > 2 ** 32
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
 
 # import `get_winfsp_dir` the violent way given winfspy cannot be loaded yet
+get_winfsp_dir = None
 exec(open(f"{BASEDIR}/../winfspy/plumbing/get_winfsp_dir.py").read())
 WINFSP_DIR = get_winfsp_dir()
 

@@ -9,7 +9,7 @@ from .get_winfsp_dir import get_winfsp_dir
 
 os.environ["PATH"] = f"{get_winfsp_dir('bin')};{os.environ.get('PATH')}"
 
-from ._bindings import ffi, lib
+from ._bindings import ffi, lib  # noqa
 
 
 def enable_debug_log():

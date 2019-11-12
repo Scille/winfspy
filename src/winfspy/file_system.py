@@ -98,9 +98,7 @@ class FileSystem:
     def __init__(self, mountpoint, operations, debug=False, **volume_params):
         self.started = False
         if not isinstance(operations, BaseFileSystemOperations):
-            raise ValueError(
-                f"`operations` must be a `BaseFileSystemOperations` instance."
-            )
+            raise ValueError(f"`operations` must be a `BaseFileSystemOperations` instance.")
 
         self.mountpoint = mountpoint
         self.operations = operations
@@ -120,9 +118,7 @@ class FileSystem:
             self._file_system_ptr,
         )
         if not nt_success(result):
-            raise WinFSPyError(
-                f"Cannot create file system: {cook_ntstatus(result).name}"
-            )
+            raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
 
         # Avoid GC on the handle
         self._operations_handle = ffi.new_handle(operations)
@@ -136,18 +132,12 @@ class FileSystem:
             raise FileSystemAlreadyStarted()
         self.started = True
 
-        result = lib.FspFileSystemSetMountPoint(
-            self._file_system_ptr[0], self.mountpoint
-        )
+        result = lib.FspFileSystemSetMountPoint(self._file_system_ptr[0], self.mountpoint)
         if not nt_success(result):
-            raise WinFSPyError(
-                f"Cannot mount file system: {cook_ntstatus(result).name}"
-            )
+            raise WinFSPyError(f"Cannot mount file system: {cook_ntstatus(result).name}")
         result = lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
         if not nt_success(result):
-            raise WinFSPyError(
-                f"Cannot start file system dispatcher: {cook_ntstatus(result).name}"
-            )
+            raise WinFSPyError(f"Cannot start file system dispatcher: {cook_ntstatus(result).name}")
 
     def stop(self):
         if not self.started:

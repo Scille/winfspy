@@ -9,6 +9,8 @@ from setuptools import setup, find_packages
 os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
 
+# Awesome hack to load `__version__`
+__version__ = None
 exec(open("src/winfspy/_version.py", encoding="utf-8").read())
 
 

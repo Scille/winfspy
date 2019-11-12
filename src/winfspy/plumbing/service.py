@@ -62,9 +62,7 @@ class BaseServiceUserContext:
 @contextmanager
 def run_service(service_name, user_context, allow_console_mode=False):
     if not isinstance(user_context, BaseServiceUserContext):
-        raise ValueError(
-            f"`user_context` must be of type `{BaseServiceUserContext.__qualname__}`"
-        )
+        raise ValueError(f"`user_context` must be of type `{BaseServiceUserContext.__qualname__}`")
     # TODO: find a way to retrieve the FSP_SERVICE* here to avoid this ugliness
     user_context.__allow_console_mode = allow_console_mode
     user_context.__service_ready = threading.Event()

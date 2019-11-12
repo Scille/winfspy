@@ -8,20 +8,31 @@ from .exceptions import (
     FileSystemAlreadyStarted,
     FileSystemNotStarted,
     NTStatusError,
-    NTStatusDirectoryNotEmpty,
     NTStatusObjectNameNotFound,
+    NTStatusObjectNameCollision,
+    NTStatusAccessDenied,
+    NTStatusNotADirectory,
+    NTStatusEndOfFile,
+    NTStatusDirectoryNotEmpty,
 )
 
 
 __all__ = (
     "__version__",
     "enable_debug_log",
+    "FILE_ATTRIBUTE",
+    "CREATE_FILE_CREATE_OPTIONS",
     "FileSystem",
-    "FileSystemOperations",
+    "BaseFileSystemOperations",
+    "BaseFileContext",
     "WinFSPyError",
     "FileSystemAlreadyStarted",
     "FileSystemNotStarted",
     "NTStatusError",
     "NTStatusObjectNameNotFound",
+    "NTStatusObjectNameCollision",
+    "NTStatusAccessDenied",
+    "NTStatusNotADirectory",
+    "NTStatusEndOfFile",
     "NTStatusDirectoryNotEmpty",
 )
