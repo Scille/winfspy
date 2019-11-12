@@ -24,6 +24,7 @@ test_script:
   # Uncomment this for RDP debug
   # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
   # Only print output if check failed
+  - pre-commit run --all-files
   - black setup.py tests src --check
   - py.test tests/ -vvv
 
