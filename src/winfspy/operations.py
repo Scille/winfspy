@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from functools import wraps
 
@@ -6,24 +7,20 @@ from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
 
 
-if False:
-
-    def debug_spy(fn):
-        @wraps(fn)
-        def wrapper(*args, **kwargs):
-            print(f"====> {fn.__name__}({args}, {kwargs})")
-            ret = fn(*args, **kwargs)
-            print(f"<==== {fn.__name__} -> {ret}")
-            return ret
-
-        return wrapper
-        return fn
+logger = logging.getLogger("winfspy")
 
 
-else:
+def _catch_unhandled_exceptions(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:
+            logger.exception("Unhandled exception")
+            return NTSTATUS.STATUS_UNEXPECTED_IO_ERROR
+        return ret
 
-    def debug_spy(fn):
-        return fn
+    return wrapper
 
 
 class BaseFileContext:
@@ -48,7 +45,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_VOLUME_INFO ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_volume_info(self, volume_info) -> NTSTATUS:
         """
         Get volume information.
@@ -81,7 +78,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_VOLUME_LABEL ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_volume_label(self, volume_label, volume_info) -> NTSTATUS:
         """
         Set volume label.
@@ -103,7 +100,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_SECURITY_BY_NAME ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_security_by_name(
         self,
         file_name,
@@ -145,7 +142,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CREATE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_create(
         self,
         file_name,
@@ -199,7 +196,7 @@ class BaseFileSystemOperations:
 
     # ~~~ OPEN ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_open(
         self, file_name, create_options, granted_access, p_file_context, file_info
     ) -> NTSTATUS:
@@ -226,7 +223,7 @@ class BaseFileSystemOperations:
 
     # ~~~ OVERWRITE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_overwrite(
         self,
         file_context,
@@ -256,7 +253,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CLEANUP ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_cleanup(self, file_context, file_name, flags: int) -> None:
         """
         Cleanup a file.
@@ -278,7 +275,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CLOSE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_close(self, file_context) -> None:
         """
         Close a file.
@@ -297,7 +294,7 @@ class BaseFileSystemOperations:
 
     # ~~~ READ ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_read(self, file_context, buffer, offset, length, p_bytes_transferred) -> NTSTATUS:
         """
         Read a file.
@@ -319,7 +316,7 @@ class BaseFileSystemOperations:
 
     # ~~~ WRITE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_write(
         self,
         file_context,
@@ -352,7 +349,7 @@ class BaseFileSystemOperations:
 
     # ~~~ FLUSH ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_flush(self, file_context, file_info) -> NTSTATUS:
         """
         Flush a file or volume.
@@ -371,7 +368,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_FILE_INFO ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_file_info(self, file_context, file_info) -> NTSTATUS:
         """
         Get file or directory information.
@@ -402,7 +399,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_BASIC_INFO ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_basic_info(
         self,
         file_context,
@@ -458,7 +455,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_FILE_SIZE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_file_size(self, file_context, new_size, set_allocation_size, file_info):
         """
         Set file/allocation size.
@@ -478,7 +475,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CAN_DELETE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_can_delete(self, file_context, file_name) -> NTSTATUS:
         """
         Determine whether a file or directory can be deleted.
@@ -498,7 +495,7 @@ class BaseFileSystemOperations:
 
     # ~~~ RENAME ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_rename(self, file_context, file_name, new_file_name, replace_if_exists):
         """
         Renames a file or directory.
@@ -525,7 +522,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_SECURITY ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_security(self, file_context, security_descriptor, p_security_descriptor_size):
         """
         Get file or directory security descriptor.
@@ -555,7 +552,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_SECURITY ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_security(self, file_context, security_information, modification_descriptor):
         """
         Set file or directory security descriptor.
@@ -574,7 +571,7 @@ class BaseFileSystemOperations:
 
     # ~~~ READ_DIRECTORY ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_read_directory(self, file_context, pattern, marker, buffer, length, p_bytes_transferred):
         """
         Read a directory.
@@ -627,7 +624,7 @@ class BaseFileSystemOperations:
 
     # ~~~ RESOLVE_REPARSE_POINTS ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_resolve_reparse_points(
         self,
         file_name,
@@ -670,7 +667,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_REPARSE_POINT ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_reparse_point(self, file_context, file_name, buffer, p_size):
         """
         Get reparse point.
@@ -691,7 +688,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_REPARSE_POINT ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_reparse_point(self, file_context, file_name, buffer, size):
         """
         Set reparse point.
@@ -712,7 +709,7 @@ class BaseFileSystemOperations:
 
     # ~~~ DELETE_REPARSE_POINT ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_delete_reparse_point(self, file_context, file_name, buffer, size):
         """
         Delete reparse point.
@@ -733,7 +730,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_STREAM_INFO ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_stream_info(self, file_context, buffer, length, p_bytes_transferred):
         """
         Get named streams information.
@@ -754,7 +751,7 @@ class BaseFileSystemOperations:
 
     # ~~~ GET_DIR_INFO_BY_NAME ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_get_dir_info_by_name(self, file_context, file_name, dir_info):
         """
         Must set `volum_params.pass_query_directory_file_name` to 1 for
@@ -793,7 +790,7 @@ class BaseFileSystemOperations:
 
     # ~~~ CONTROL ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_control(
         self,
         file_context,
@@ -839,7 +836,7 @@ class BaseFileSystemOperations:
 
     # ~~~ SET_DELETE ~~~
 
-    @debug_spy
+    @_catch_unhandled_exceptions
     def ll_set_delete(self, file_context, file_name, delete_file):
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
