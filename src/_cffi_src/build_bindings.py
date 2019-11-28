@@ -43,6 +43,7 @@ ffibuilder.set_source(
     "winfspy.plumbing._bindings",
     """
 #include <windows.h>
+#include <string.h>
 #include <sddl.h>
 #include <strsafe.h>
 #include <winfsp/winfsp.h>
@@ -290,6 +291,7 @@ extern const int WFSPY_FILE_COMPLETE_IF_OPLOCKED;
 
 extern const int WFSPY_FILE_ATTRIBUTE_INVALID_FILE_ATTRIBUTES;
 
+size_t wcslen(const wchar_t *str);
 """
 )
 

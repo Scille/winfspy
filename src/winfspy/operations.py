@@ -1,3 +1,4 @@
+import sys
 import logging
 from typing import List
 from functools import wraps
@@ -21,6 +22,10 @@ def _catch_unhandled_exceptions(fn):
         return ret
 
     return wrapper
+
+
+# Because `encode('UTF16')` appends a BOM a the begining of the output
+_STRING_ENCODING = "UTF-16-LE" if sys.byteorder == "little" else "UTF-16-BE"
 
 
 class BaseFileContext:
@@ -58,12 +63,15 @@ class BaseFileSystemOperations:
 
         volume_info.TotalSize = vi["total_size"]
         volume_info.FreeSize = vi["free_size"]
-        volume_label = vi["volume_label"]
-        if len(volume_label) > 32:
-            raise ValueError("`volume_label` should be at most 32 characters long !")
-        volume_info.VolumeLabel = volume_label
+
+        volume_label_encoded = vi["volume_label"].encode(_STRING_ENCODING)
+        if len(volume_label_encoded) > 64:
+            raise ValueError(
+                "`volume_label` should be at most 64 bytes long once encoded in UTF16 !"
+            )
+        ffi.memmove(volume_info.VolumeLabel, volume_label_encoded, len(volume_label_encoded))
         # Stored in WCHAR, so each character should be 2 octets
-        volume_info.VolumeLabelLength = len(volume_label) * 2
+        volume_info.VolumeLabelLength = len(volume_label_encoded) // 2
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -593,12 +601,14 @@ class BaseFileSystemOperations:
             # Optimization FTW... FSP_FSCTL_DIR_INFO must be allocated along
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
-            file_name_size = len(file_name.encode("utf16")) + 2  # WCHAR string + NULL character
-            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
+            file_name_encoded = file_name.encode(_STRING_ENCODING)
+            # FSP_FSCTL_DIR_INFO base struct + WCHAR[] string + NULL WCHAR character
+            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + len(file_name_encoded) + 2
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
-            dir_info.FileNameBuf = file_name
             dir_info.Size = dir_info_size
+            # `ffi.new` clears buffer with 0, so no need to set the final NULL byte
+            ffi.memmove(dir_info.FileNameBuf, file_name_encoded, len(file_name_encoded))
             configure_file_info(dir_info.FileInfo, **entry_info)
             if not lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred):
                 return NTSTATUS.STATUS_SUCCESS
@@ -768,10 +778,12 @@ class BaseFileSystemOperations:
 
         # dir_info is already allocated for us, but we have to retreive it
         # custom size (it is allocated along with it last field)
-        file_name_size = len(cooked_file_name.encode("utf16")) + 2  # WCHAR string + NULL character
-        dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_size
-        dir_info.FileNameBuf = cooked_file_name
+        file_name_bytesize = lib.wcslen(file_name) * 2  # WCHAR
+
+        dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_bytesize
+        ffi.memmove(dir_info.FileNameBuf, file_name, file_name_bytesize)
         configure_file_info(dir_info.FileInfo, **info)
+
         return NTSTATUS.STATUS_SUCCESS
 
     def get_dir_info_by_name(self, file_context, file_name: str) -> dict:
