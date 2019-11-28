@@ -9,11 +9,12 @@ environment:
     - PYTHON: C:\Python37
       RELEASE_ONLY_TARGET: true
     - PYTHON: C:\Python37-x64
-      RELEASE_ONLY_TARGET: true
+      RELEASE_ONLY_TARGET: false
+      CHECK_STYLE: true
     # - PYTHON: C:\Python38
     #   RELEASE_ONLY_TARGET: true
     # - PYTHON: C:\Python38-x64
-    #   RELEASE_ONLY_TARGET: false
+    #   RELEASE_ONLY_TARGET: true
   PYPI_PASSWORD:
     secure: UekbvbY3VJX53NJLchbcY+5ZfdoQQ8LwAIR+9SlacvjWGlayfn1+WF9TtIy0koc8
 
@@ -39,7 +40,7 @@ before_build:
   - ps: if($env:DEBUG -eq "true") { iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1')) }
 
 build_script:
-  - pre-commit run --all-files
+  - ps: if($env:CHECK_STYLE -eq "true") { Invoke-Expression "pre-commit run --all-files" }
   - pip install .
 
 test_script:
