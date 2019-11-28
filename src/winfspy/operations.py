@@ -16,10 +16,10 @@ def _catch_unhandled_exceptions(fn):
     def wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except Exception as exc:
+
+        except Exception:
             logger.exception("Unhandled exception")
             return NTSTATUS.STATUS_UNEXPECTED_IO_ERROR
-        return ret
 
     return wrapper
 
