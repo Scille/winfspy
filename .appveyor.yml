@@ -40,7 +40,11 @@ before_build:
   - ps: if($env:DEBUG -eq "true") { iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1')) }
 
 build_script:
-  - ps: if($env:CHECK_STYLE -eq "true") { Invoke-Expression "pre-commit run --all-files" }
+  - ps: |
+      if($env:CHECK_STYLE -eq "true") {
+        Invoke-Expression "pre-commit run --all-files"
+        if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode )  }
+      }
   - pip install .
 
 test_script:
