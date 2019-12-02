@@ -134,6 +134,10 @@ class BaseFileSystemOperations:
         # Get file security
         if p_security_descriptor_size != ffi.NULL:
             if sd_size > p_security_descriptor_size[0]:
+                # In case of overflow error, winfsp will retry with a new
+                # allocation based on `p_security_descriptor_size`. Hence we
+                # must update this value to the required size.
+                p_security_descriptor_size[0] = sd_size
                 return NTSTATUS.STATUS_BUFFER_OVERFLOW
             p_security_descriptor_size[0] = sd_size
 
