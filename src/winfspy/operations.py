@@ -17,7 +17,7 @@ def _catch_unhandled_exceptions(fn):
         try:
             return fn(*args, **kwargs)
 
-        except Exception:
+        except BaseException:
             logger.exception("Unhandled exception")
             return NTSTATUS.STATUS_UNEXPECTED_IO_ERROR
 
