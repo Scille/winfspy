@@ -12,11 +12,11 @@ from winfspy import (
     CREATE_FILE_CREATE_OPTIONS,
     NTStatusObjectNameNotFound,
     NTStatusDirectoryNotEmpty,
+    NTStatusNotADirectory,
     NTStatusObjectNameCollision,
     NTStatusAccessDenied,
     NTStatusEndOfFile,
 )
-from winfspy.exceptions import NTStatusNotADirectory
 from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
 
@@ -309,22 +309,44 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @threadsafe
     def read_directory(self, file_context, marker):
-        entries = []
+        entries = [{"file_name": ".."}]
         file_obj = file_context.file_obj
-
-        if file_obj.path != PureWindowsPath("/"):
-            entries.append({"file_name": ".."})
 
         for entry_path, entry_obj in self._entries.items():
             try:
                 relative = entry_path.relative_to(file_obj.path)
+                if not relative.parts and isinstance(entry_obj, FileObj):
+                    raise NTStatusNotADirectory()
                 # Not interested into ourself or our grandchildren
                 if len(relative.parts) == 1:
-                    print("==> ADD", entry_path)
                     entries.append({"file_name": entry_path.name, **entry_obj.get_file_info()})
             except ValueError:
                 continue
-        return entries
+
+        entries = sorted(entries, key=lambda x: x["file_name"])
+
+        if marker is not None:
+            # Filter out all results before the marker
+            filtered_entries = []
+            reached_marker = False
+            for entry in entries:
+                if reached_marker:
+                    filtered_entries.append(entry)
+                elif entry["file_name"] == marker:
+                    reached_marker = True
+            return filtered_entries
+        else:
+            return entries
+
+    @threadsafe
+    def get_dir_info_by_name(self, file_context, file_name):
+        path = file_context.file_obj.path / file_name
+        try:
+            entry_obj = self._entries[path]
+        except KeyError:
+            raise NTStatusObjectNameNotFound()
+
+        return {"file_name": file_name, **entry_obj.get_file_info()}
 
     @threadsafe
     def read(self, file_context, offset, length):
