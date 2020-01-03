@@ -774,19 +774,19 @@ class BaseFileSystemOperations:
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
         try:
-            # TODO handle dir_info here
             info = self.get_dir_info_by_name(cooked_file_context, cooked_file_name)
 
         except NTStatusError as exc:
             return exc.value
 
-        # dir_info is already allocated for us, but we have to retreive it
-        # custom size (it is allocated along with it last field)
         file_name_bytesize = lib.wcslen(file_name) * 2  # WCHAR
-
-        dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_bytesize
         ffi.memmove(dir_info.FileNameBuf, file_name, file_name_bytesize)
+
         configure_file_info(dir_info.FileInfo, **info)
+
+        # dir_info is already allocated for us with a 255 wchar buffer for file
+        # name, but we have to set the actual used size here
+        dir_info.Size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + file_name_bytesize
 
         return NTSTATUS.STATUS_SUCCESS
 
