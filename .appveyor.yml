@@ -27,7 +27,7 @@ for:
     skip_non_tags: true
 
 install:
-  - choco install winfsp -y --version=1.4.19049
+  - choco install winfsp -y --version=1.5.20002
   - git --no-pager log -n2
   - echo %APPVEYOR_REPO_COMMIT%
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;;%PATH%
