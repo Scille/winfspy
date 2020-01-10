@@ -1,10 +1,11 @@
-import argparse
+import sys
 import time
+import logging
+import argparse
 import threading
 from functools import wraps
 from pathlib import PureWindowsPath
 
-import structlog
 from winfspy import (
     FileSystem,
     BaseFileSystemOperations,
@@ -22,7 +23,6 @@ from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
 
 thread_lock = threading.Lock()
-logger = structlog.get_logger()
 
 
 def operation(fn):
@@ -40,10 +40,10 @@ def operation(fn):
             with thread_lock:
                 result = fn(self, *args, **kwargs)
         except Exception as exc:
-            logger.info(f"NOK | {name:20} | {head!r:20}", args=tail, exc=exc)
+            logging.info(f" NOK | {name:20} | {head!r:20} | {tail!r:20} | {exc!r}")
             raise
         else:
-            logger.info(f"OK! | {name:20} | {head!r:20}", args=tail, result=result)
+            logging.info(f" OK! | {name:20} | {head!r:20} | {tail!r:20} | {result!r}")
             return result
 
     return wrapper
@@ -390,9 +390,11 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
                 raise NTStatusObjectNameNotFound()
 
 
-def main(mountpoint, label, debug):
+def main(mountpoint, label, verbose, debug):
     if debug:
         enable_debug_log()
+    if verbose:
+        logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
     operations = InMemoryFileSystemOperations(label)
     fs = FileSystem(
@@ -431,6 +433,7 @@ def main(mountpoint, label, debug):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mountpoint")
+    parser.add_argument("-v", dest="verbose", action="store_true")
     parser.add_argument("-d", dest="debug", action="store_true")
     args = parser.parse_args()
-    main(args.mountpoint, "touille", args.debug)
+    main(args.mountpoint, "touille", args.verbose, args.debug)
