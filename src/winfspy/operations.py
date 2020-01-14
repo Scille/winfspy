@@ -606,12 +606,12 @@ class BaseFileSystemOperations:
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
             file_name_encoded = file_name.encode(_STRING_ENCODING)
-            # FSP_FSCTL_DIR_INFO base struct + WCHAR[] string + NULL WCHAR character
-            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + len(file_name_encoded) + 2
+            # FSP_FSCTL_DIR_INFO base struct + WCHAR[] string
+            # Note: Windows does not use NULL-terminated string
+            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + len(file_name_encoded)
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
             dir_info.Size = dir_info_size
-            # `ffi.new` clears buffer with 0, so no need to set the final NULL byte
             ffi.memmove(dir_info.FileNameBuf, file_name_encoded, len(file_name_encoded))
             configure_file_info(dir_info.FileInfo, **entry_info)
             if not lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred):
