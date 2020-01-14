@@ -103,6 +103,20 @@ class FileSystem:
         self.mountpoint = mountpoint
         self.operations = operations
 
+        # The `pass_query_directory_pattern` mode is not supported at the moment
+        if volume_params.get("pass_query_directory_pattern", False):
+            raise ValueError(
+                "The `pass_query_directory_pattern` mode is not supported at the moment"
+            )
+
+        # Enable `pass_query_directory_file_name` by default if `get_dir_info_by_name` is available
+        get_dir_info_by_name_available = (
+            type(operations).get_dir_info_by_name
+            is not BaseFileSystemOperations.get_dir_info_by_name
+        )
+        if get_dir_info_by_name_available and "pass_query_directory_file_name" not in volume_params:
+            volume_params["pass_query_directory_file_name"] = True
+
         self._volume_params = _volume_params_factory(**volume_params)
         set_delete_available = (
             type(operations).set_delete is not BaseFileSystemOperations.set_delete
