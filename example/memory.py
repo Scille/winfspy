@@ -132,12 +132,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             "volume_label": volume_label,
         }
 
-        root_path = PureWindowsPath("/")
+        self._root_path = PureWindowsPath("/")
         self._entries = {
-            root_path: FolderObj(root_path),
-            root_path / "foo": FolderObj(root_path / "foo"),
-            root_path / "foo/spam.txt": FileObj(root_path / "foo/spam.txt", data=b"spam!"),
-            root_path / "bar.txt": FileObj(root_path / "bar.txt", data=b"bar!"),
+            self._root_path: FolderObj(self._root_path),
         }
 
     @operation
@@ -314,31 +311,43 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def read_directory(self, file_context, marker):
-        entries = [{"file_name": ".."}]
+        entries = []
         file_obj = file_context.file_obj
+
+        # Not a directory
+        if isinstance(file_obj, FileObj):
+            raise NTStatusNotADirectory()
+
+        # The "." and ".." should ONLY be included if the queried directory is not root
+        if file_obj.path != self._root_path:
+            parent_obj = self._entries[file_obj.path.parent]
+            entries.append({"file_name": ".", **file_obj.get_file_info()})
+            entries.append({"file_name": "..", **parent_obj.get_file_info()})
+
+        # Loop over all entries
         for entry_path, entry_obj in self._entries.items():
             try:
                 relative = entry_path.relative_to(file_obj.path)
-                if not relative.parts and isinstance(entry_obj, FileObj):
-                    raise NTStatusNotADirectory()
-                # Not interested into ourself or our grandchildren
-                if len(relative.parts) == 1:
-                    entries.append({"file_name": entry_path.name, **entry_obj.get_file_info()})
+            # Filter out unrelated entries
             except ValueError:
                 continue
+            # Filter out ourself or our grandchildren
+            if len(relative.parts) != 1:
+                continue
+            # Add direct chidren to the entry list
+            entries.append({"file_name": entry_path.name, **entry_obj.get_file_info()})
+
+        # Sort the entries
         entries = sorted(entries, key=lambda x: x["file_name"])
-        if marker is not None:
-            # Filter out all results before the marker
-            filtered_entries = []
-            reached_marker = False
-            for entry in entries:
-                if reached_marker:
-                    filtered_entries.append(entry)
-                elif entry["file_name"] == marker:
-                    reached_marker = True
-            return filtered_entries
-        else:
+
+        # No filtering to apply
+        if marker is None:
             return entries
+
+        # Filter out all results before the marker
+        for i, entry in enumerate(entries):
+            if entry["file_name"] == marker:
+                return entries[i + 1 :]
 
     @operation
     def get_dir_info_by_name(self, file_context, file_name):
