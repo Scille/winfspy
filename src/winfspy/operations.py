@@ -70,8 +70,8 @@ class BaseFileSystemOperations:
                 "`volume_label` should be at most 64 bytes long once encoded in UTF16 !"
             )
         ffi.memmove(volume_info.VolumeLabel, volume_label_encoded, len(volume_label_encoded))
-        # Stored in WCHAR, so each character should be 2 octets
-        volume_info.VolumeLabelLength = len(volume_label_encoded) // 2
+        # The volume label length must be reported in bytes (and without NULL bytes at the end)
+        volume_info.VolumeLabelLength = len(volume_label_encoded)
 
         return NTSTATUS.STATUS_SUCCESS
 
