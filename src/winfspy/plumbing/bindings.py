@@ -1,7 +1,7 @@
 import os
 import sys
 
-from .get_winfsp_dir import get_winfsp_dir
+from .get_winfsp_dir import get_winfsp_bin_dir
 
 # WinFSP's DLL is not available system-wide, so we have to first retrieve it
 # (using either user-provided environ variable or the infamous windows
@@ -12,9 +12,9 @@ from .get_winfsp_dir import get_winfsp_dir
 # variable.
 
 if sys.version_info >= (3, 8):
-    os.add_dll_directory(get_winfsp_dir("bin"))
+    os.add_dll_directory(get_winfsp_bin_dir())
 else:
-    os.environ["PATH"] = f"{get_winfsp_dir('bin')};{os.environ.get('PATH')}"
+    os.environ["PATH"] = f"{get_winfsp_bin_dir()};{os.environ.get('PATH')}"
 
 from ._bindings import ffi, lib  # noqa
 
