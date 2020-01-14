@@ -104,8 +104,8 @@ class FileObj(BaseFileObj):
 class FolderObj(BaseFileObj):
     def __init__(self, path):
         super().__init__(path)
-        self.file_size = 4096
-        self.allocation_size = 4096
+        self.file_size = 0
+        self.allocation_size = 0
         self.attributes = FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
 
@@ -223,7 +223,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             if isinstance(file_obj, FileObj):
                 raise NTStatusAccessDenied()
 
-        for entry_path, entry in self._entries.items():
+        for entry_path in list(self._entries):
             try:
                 relative = entry_path.relative_to(file_name)
                 new_entry_path = new_file_name / relative
