@@ -633,6 +633,13 @@ class BaseFileSystemOperations:
             file_attributes
             allocation_size
             file_size
+
+        Only direct children should be included in this list.
+        The special directories "." and ".." should ONLY be included if the queried directory is not root.
+        The list has to be consistently sorted.
+        The marker argument marks where in the directory to start reading.
+        Files with names that are greater than (not equal to) this marker should be returned.
+        Might be None, in which case the filtering is disabled.
         """
         raise NotImplementedError()
 
@@ -769,7 +776,8 @@ class BaseFileSystemOperations:
     def ll_get_dir_info_by_name(self, file_context, file_name, dir_info):
         """
         Must set `volum_params.pass_query_directory_file_name` to 1 for
-        this method to be used.
+        this method to be used. This is the default when an `get_dir_info_by_name`
+        implementation is provided.
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
