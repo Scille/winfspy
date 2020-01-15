@@ -54,8 +54,9 @@ class BaseFileObj:
     def name(self):
         return self.path.name
 
-    def __init__(self, path):
+    def __init__(self, path, attributes):
         self.path = path
+        self.attributes = attributes
         now = filetime_now()
         self.creation_time = now
         self.last_access_time = now
@@ -84,10 +85,10 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-    def __init__(self, path, data=b""):
-        super().__init__(path)
+    def __init__(self, path, attributes, data=b""):
+        super().__init__(path, attributes)
         self.data = bytearray(data)
-        self.attributes = FILE_ATTRIBUTE.FILE_ATTRIBUTE_NORMAL
+        assert not self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
     @property
     def file_size(self):
@@ -102,11 +103,11 @@ class FileObj(BaseFileObj):
 
 
 class FolderObj(BaseFileObj):
-    def __init__(self, path):
-        super().__init__(path)
+    def __init__(self, path, attributes):
+        super().__init__(path, attributes)
         self.file_size = 0
         self.allocation_size = 0
-        self.attributes = FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
+        assert self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
 
 class OpenedObj:
@@ -134,7 +135,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         self._root_path = PureWindowsPath("/")
         self._entries = {
-            self._root_path: FolderObj(self._root_path),
+            self._root_path: FolderObj(self._root_path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY),
         }
 
     @operation
@@ -186,12 +187,15 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         except KeyError:
             raise NTStatusObjectNameNotFound()
 
-        # TODO: handle file_attributes
+        # File/Folder already exists
+        if file_name in self._entries:
+            raise NTStatusObjectNameCollision()
 
+        # TODO: handle file_attributes
         if create_options & CREATE_FILE_CREATE_OPTIONS.FILE_DIRECTORY_FILE:
-            file_obj = self._entries[file_name] = FolderObj(file_name)
+            file_obj = self._entries[file_name] = FolderObj(file_name, file_attributes)
         else:
-            file_obj = self._entries[file_name] = FileObj(file_name)
+            file_obj = self._entries[file_name] = FileObj(file_name, file_attributes)
 
         return OpenedObj(file_obj)
 
@@ -269,7 +273,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         file_obj = file_context.file_obj
         if file_attributes != FILE_ATTRIBUTE.INVALID_FILE_ATTRIBUTES:
-            file_obj.file_attributes = file_attributes
+            file_obj.attributes = file_attributes
         if creation_time:
             file_obj.creation_time = creation_time
         if last_access_time:
