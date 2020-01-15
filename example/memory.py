@@ -402,6 +402,17 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             except KeyError:
                 raise NTStatusObjectNameNotFound()
 
+    @operation
+    def overwrite(
+        self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
+    ) -> None:
+        file_obj = file_context.file_obj
+        if replace_file_attributes:
+            file_obj.attributes = file_attributes
+        else:
+            file_obj.attributes |= file_attributes
+        file_obj.data[:] = b"\x00" * allocation_size
+
 
 def main(mountpoint, label, verbose, debug):
     if debug:
