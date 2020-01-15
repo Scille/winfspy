@@ -1,3 +1,8 @@
+"""A memory file system implemented on top of winfspy.
+
+Useful for testing and as a reference.
+"""
+
 import sys
 import time
 import logging
@@ -22,9 +27,6 @@ from winfspy import (
 from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
 
-thread_lock = threading.Lock()
-
-
 def operation(fn):
     """Decorator for file system operations.
 
@@ -37,7 +39,7 @@ def operation(fn):
         head = args[0] if args else None
         tail = args[1:] if args else ()
         try:
-            with thread_lock:
+            with self._thread_lock:
                 result = fn(self, *args, **kwargs)
         except Exception as exc:
             logging.info(f" NOK | {name:20} | {head!r:20} | {tail!r:20} | {exc!r}")
@@ -128,6 +130,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         max_file_nodes = 1024
         max_file_size = 16 * 1024 * 1024
         file_nodes = 1
+
         self._volume_info = {
             "total_size": max_file_nodes * max_file_size,
             "free_size": (max_file_nodes - file_nodes) * max_file_size,
@@ -138,6 +141,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self._entries = {
             self._root_path: FolderObj(self._root_path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY),
         }
+        self._thread_lock = threading.Lock()
 
     @operation
     def get_volume_info(self):
@@ -459,7 +463,8 @@ def main(mountpoint, label, verbose, debug):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mountpoint")
-    parser.add_argument("-v", dest="verbose", action="store_true")
-    parser.add_argument("-d", dest="debug", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-l", "--label", type=str, default="memfs")
     args = parser.parse_args()
-    main(args.mountpoint, "touille", args.verbose, args.debug)
+    main(args.mountpoint, args.label, args.verbose, args.debug)
