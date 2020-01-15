@@ -88,6 +88,7 @@ class FileObj(BaseFileObj):
     def __init__(self, path, attributes, data=b""):
         super().__init__(path, attributes)
         self.data = bytearray(data)
+        self.attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
         assert not self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
     @property
@@ -407,6 +408,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
     ) -> None:
         file_obj = file_context.file_obj
+        file_attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
         if replace_file_attributes:
             file_obj.attributes = file_attributes
         else:
