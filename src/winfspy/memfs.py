@@ -420,7 +420,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         file_obj.data[:] = b"\x00" * allocation_size
 
 
-def main(mountpoint, label, verbose, debug):
+def create_memory_file_system(
+    mountpoint, label="memfs", verbose=True, debug=False,
+):
     if debug:
         enable_debug_log()
     if verbose:
@@ -428,7 +430,7 @@ def main(mountpoint, label, verbose, debug):
 
     operations = InMemoryFileSystemOperations(label)
     fs = FileSystem(
-        mountpoint,
+        str(mountpoint),
         operations,
         sector_size=512,
         sectors_per_allocation_unit=1,
@@ -441,12 +443,17 @@ def main(mountpoint, label, verbose, debug):
         persistent_acls=1,
         post_cleanup_when_modified_only=1,
         um_file_context_is_user_context2=1,
-        file_system_name=mountpoint,
+        file_system_name=str(mountpoint),
         prefix="",
         debug=debug,
         # security_timeout_valid=1,
         # security_timeout=10000,
     )
+    return fs
+
+
+def main(mountpoint, label, verbose, debug):
+    fs = create_memory_file_system(mountpoint, label, verbose, debug)
     try:
         print("Starting FS")
         fs.start()
