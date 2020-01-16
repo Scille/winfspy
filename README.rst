@@ -6,6 +6,9 @@ WinFSPy
         :target: https://ci.appveyor.com/project/touilleMan/winfspy/branch/master
         :alt: Appveyor CI Status
 
+.. image:: https://codecov.io/gh/Scille/winfspy/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/Scille/winfspy
+
 .. image:: https://img.shields.io/pypi/v/winfspy.svg
         :target: https://pypi.python.org/pypi/winfspy
         :alt: Pypi Status
