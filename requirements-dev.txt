@@ -3,3 +3,5 @@ pywin32
 pre-commit
 wheel
 twine
+coverage
+pytest-cov

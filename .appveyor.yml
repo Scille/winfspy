@@ -48,7 +48,7 @@ build_script:
   - pip install .[test]
 
 test_script:
-  - pytest --pyargs winfspy.tests.winfstest -vvv
+  - pytest -vvv
 
 after_test:
   - python setup.py bdist_wheel
@@ -70,3 +70,7 @@ deploy_script:
   - set HOME=%USERPROFILE%
   - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --verbose --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
   - echo "Finished Artifact Deployment"
+
+on_success:
+  - pip install -U --user codecov
+  - python -m codecov

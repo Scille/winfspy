@@ -143,7 +143,7 @@ def cook_ntstatus(status):
         return NTSTATUS.STATUS_UNKNOWN
 
 
-class NTSTATUS(enum.IntEnum):
+class NTSTATUS(enum.IntEnum):  # pragma: no cover
     STATUS_UNKNOWN = -1
     STATUS_SUCCESS = 0x0
     STATUS_WAIT_0 = 0x0
