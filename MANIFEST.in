@@ -1,2 +1,3 @@
-recursive-include src\winfspy *.t
 include requirements.txt
+recursive-include src\_cffi_src *.py *.h
+recursive-include src\winfspy *.t
