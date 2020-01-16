@@ -16,6 +16,10 @@ exec(open("src/winfspy/_version.py", encoding="utf-8").read())
 
 requirements = open("requirements.txt").read().split("\n")
 
+extra_requirements = {"test": ["pytest>=3.8.0", "pywin32"]}
+extra_requirements["tests"] = extra_requirements["test"]
+extra_requirements["all"] = extra_requirements["test"]
+
 
 setup(
     name="winfspy",
@@ -37,7 +41,9 @@ setup(
     packages=find_packages(where="src", exclude=["_cffi_src", "_cffi_src.*"]),
     install_requires=requirements,
     setup_requires=requirements,
+    extras_require=extra_requirements,
     cffi_modules=["./src/_cffi_src/build_bindings.py:ffibuilder"],
-    # for cffi
+    # for cffi and test case .t files
     zip_safe=False,
+    include_package_data=True,
 )

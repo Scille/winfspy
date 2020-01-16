@@ -1,0 +1,2 @@
+recursive-include src\winfspy *.t
+include requirements.txt

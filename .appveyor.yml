@@ -45,10 +45,10 @@ build_script:
         Invoke-Expression "pre-commit run --all-files"
         if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode )  }
       }
-  - pip install .
+  - pip install .[test]
 
 test_script:
-  - py.test tests/ -vvv
+  - pytest --pyargs winfspy.tests.winfstest -vvv
 
 after_test:
   - python setup.py bdist_wheel
