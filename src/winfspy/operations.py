@@ -70,8 +70,8 @@ class BaseFileSystemOperations:
                 "`volume_label` should be at most 64 bytes long once encoded in UTF16 !"
             )
         ffi.memmove(volume_info.VolumeLabel, volume_label_encoded, len(volume_label_encoded))
-        # Stored in WCHAR, so each character should be 2 octets
-        volume_info.VolumeLabelLength = len(volume_label_encoded) // 2
+        # The volume label length must be reported in bytes (and without NULL bytes at the end)
+        volume_info.VolumeLabelLength = len(volume_label_encoded)
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -606,12 +606,12 @@ class BaseFileSystemOperations:
             # with it last field (FileNameBuf which is a string)
             file_name = entry_info["file_name"]
             file_name_encoded = file_name.encode(_STRING_ENCODING)
-            # FSP_FSCTL_DIR_INFO base struct + WCHAR[] string + NULL WCHAR character
-            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + len(file_name_encoded) + 2
+            # FSP_FSCTL_DIR_INFO base struct + WCHAR[] string
+            # Note: Windows does not use NULL-terminated string
+            dir_info_size = ffi.sizeof("FSP_FSCTL_DIR_INFO") + len(file_name_encoded)
             dir_info_raw = ffi.new("char[]", dir_info_size)
             dir_info = ffi.cast("FSP_FSCTL_DIR_INFO*", dir_info_raw)
             dir_info.Size = dir_info_size
-            # `ffi.new` clears buffer with 0, so no need to set the final NULL byte
             ffi.memmove(dir_info.FileNameBuf, file_name_encoded, len(file_name_encoded))
             configure_file_info(dir_info.FileInfo, **entry_info)
             if not lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred):
@@ -633,6 +633,13 @@ class BaseFileSystemOperations:
             file_attributes
             allocation_size
             file_size
+
+        Only direct children should be included in this list.
+        The special directories "." and ".." should ONLY be included if the queried directory is not root.
+        The list has to be consistently sorted.
+        The marker argument marks where in the directory to start reading.
+        Files with names that are greater than (not equal to) this marker should be returned.
+        Might be None, in which case the filtering is disabled.
         """
         raise NotImplementedError()
 
@@ -769,7 +776,8 @@ class BaseFileSystemOperations:
     def ll_get_dir_info_by_name(self, file_context, file_name, dir_info):
         """
         Must set `volum_params.pass_query_directory_file_name` to 1 for
-        this method to be used.
+        this method to be used. This is the default when an `get_dir_info_by_name`
+        implementation is provided.
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
