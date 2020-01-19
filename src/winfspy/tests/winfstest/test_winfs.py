@@ -117,11 +117,26 @@ def set_file_attributes(path, file_attributes):
     win32file.SetFileAttributesW(path, file_attributes)
 
 
+def create_directory(path, sddl):
+    # Security descriptors are not supported in the tests at the moment
+    assert sddl == 0
+
+    # Windows API call
+    win32file.CreateDirectoryW(path, None)
+
+
+def remove_directory(path):
+    # Windows API call
+    win32file.RemoveDirectory(path)
+
+
 OPERATIONS = {
     "CreateFile": create_file,
     "DeleteFile": delete_file,
     "GetFileInformation": get_file_information,
     "SetFileAttributes": set_file_attributes,
+    "CreateDirectory": create_directory,
+    "RemoveDirectory": remove_directory,
 }
 
 
@@ -167,21 +182,26 @@ def expect(base_path, runner, cmd, expected):
 # Tests
 
 
-@pytest.mark.parametrize(
-    "test_module_path", TEST_MODULES, ids=list(map(str, TEST_MODULES)),
-)
-def test_winfs(test_module_path, file_system_path):
-    module_number = int(test_module_path.name[:2])
-    if module_number > 1:
-        pytest.xfail()
-
+@pytest.fixture
+def process_runner():
     with ProcessPoolExecutor(max_workers=1) as executor:
 
         def runner(fn, *args, **kwargs):
             return executor.submit(fn, *args, **kwargs).result()
 
-        do_expect = partial(expect, file_system_path, runner)
-        globs = {"uniqname": unique_name, "expect": do_expect, "testdone": lambda: None}
-        test_module = open(test_module_path).read()
-        test_module = test_module.replace("from winfstest import *", "")
-        exec(test_module, globs)
+        yield runner
+
+
+@pytest.mark.parametrize(
+    "test_module_path", TEST_MODULES, ids=list(map(str, TEST_MODULES)),
+)
+def test_winfs(test_module_path, file_system_path, process_runner):
+    module_number = int(test_module_path.name[:2])
+    if module_number > 2:
+        pytest.xfail()
+
+    do_expect = partial(expect, file_system_path, process_runner)
+    globs = {"uniqname": unique_name, "expect": do_expect, "testdone": lambda: None}
+    test_module = open(test_module_path).read()
+    test_module = test_module.replace("from winfstest import *", "")
+    exec(test_module, globs)
