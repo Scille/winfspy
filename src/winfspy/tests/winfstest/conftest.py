@@ -5,13 +5,17 @@ from winfspy.memfs import create_memory_file_system
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--file-system-path",
-        action="store",
-        type=str,
-        default=None,
-        help="A path to the file system to test",
-    )
+    try:
+        parser.addoption(
+            "--file-system-path",
+            action="store",
+            type=str,
+            default=None,
+            help="A path to the file system to test",
+        )
+    # Option already added (via the pluging module)
+    except ValueError:
+        pass
 
 
 def get_available_drive():
