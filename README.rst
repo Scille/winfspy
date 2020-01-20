@@ -19,4 +19,71 @@ WinFSPy
 
 Bindings for `WinFSP <http://www.secfs.net/winfsp/>`_ version 1.4 and onward.
 
-* Free software: BSD
+Winfspy consists of three important modules:
+
+- ``winfspy``: expose the WinFSP API
+- ``winfspy.memfs``: a memory file system based on winfspy
+- ``winfspy.tests.winfstest``: a test suite for black box testing
+
+
+Requirements and installation
+-----------------------------
+
+`WinFSP <http://www.secfs.net/winfsp/>`_ version 1.4 or higher has to be installed separately.
+
+Then install winfspy using pip::
+
+    $ pip install winfspy
+
+
+WinFSP python API
+-----------------
+
+Usage::
+
+    from winfspy import (
+        FileSystem,
+        BaseFileSystemOperations,
+        enable_debug_log,
+        FILE_ATTRIBUTE,
+        CREATE_FILE_CREATE_OPTIONS,
+        NTStatusObjectNameNotFound,
+        NTStatusDirectoryNotEmpty,
+        NTStatusNotADirectory,
+        NTStatusObjectNameCollision,
+        NTStatusAccessDenied,
+        NTStatusEndOfFile,
+    )
+
+
+Winfspy memory file system
+---------------------------
+
+Usage::
+
+    # Run the memory fs as X: drive in verbose mode
+    $ python -m winfspy.memfs X: -v
+
+    # More information
+    $ python -m winfspy.memfs
+
+
+Winfstest test suite
+--------------------
+
+Usage::
+
+    # Install winfspy with the test dependencies
+    $ pip install winfspy[test]
+
+    # Run the winfstest test suite on an existing X: drive
+    $ python winfspy.tests.winfstest --file-system-path X:
+
+    # More information about pytest
+    $ python winfspy.tests.winfstest -h
+
+
+License
+-------
+
+Free software: BSD
