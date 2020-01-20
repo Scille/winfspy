@@ -187,7 +187,6 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         try:
             parent_file_obj = self._entries[file_name.parent]
             if isinstance(parent_file_obj, FileObj):
-                # TODO: check this code is ok
                 raise NTStatusNotADirectory()
         except KeyError:
             raise NTStatusObjectNameNotFound()
@@ -196,7 +195,6 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         if file_name in self._entries:
             raise NTStatusObjectNameCollision()
 
-        # TODO: handle file_attributes
         if create_options & CREATE_FILE_CREATE_OPTIONS.FILE_DIRECTORY_FILE:
             file_obj = self._entries[file_name] = FolderObj(file_name, file_attributes)
         else:
