@@ -292,12 +292,14 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def set_file_size(self, file_context, new_size, set_allocation_size):
-
         file_obj = file_context.file_obj
-        if not set_allocation_size:
+        if set_allocation_size:
             if new_size < file_obj.file_size:
                 file_obj.data = file_obj.data[:new_size]
-            elif new_size > file_obj.file_size:
+        else:
+            if new_size < file_obj.file_size:
+                file_obj.data = file_obj.data[:new_size]
+            if new_size > file_obj.file_size:
                 file_obj.data = file_obj.data + bytearray(new_size - file_obj.file_size)
 
     @operation
@@ -417,7 +419,8 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             file_obj.attributes = file_attributes
         else:
             file_obj.attributes |= file_attributes
-        file_obj.data[:] = b"\x00" * allocation_size
+        if allocation_size < file_obj.file_size:
+            file_obj.data = file_obj.data[:allocation_size]
 
 
 def create_memory_file_system(
