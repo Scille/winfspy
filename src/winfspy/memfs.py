@@ -229,7 +229,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         if new_file_name in self._entries:
             if not replace_if_exists:
                 raise NTStatusObjectNameCollision()
-            if isinstance(file_obj, FileObj):
+            if not isinstance(file_obj, FileObj):
                 raise NTStatusAccessDenied()
 
         for entry_path in list(self._entries):
