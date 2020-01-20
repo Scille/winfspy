@@ -40,6 +40,21 @@ def windatetime_to_datetime(windatetime):
     return datetime.strptime(string, "%Y-%m-%d %H:%M:%S.%f%z")
 
 
+def create_result_dict(info, keys):
+    result = dict(zip(keys, info))
+    for key in ("CreationTime", "LastAccessTime", "LastWriteTime"):
+        if key not in keys:
+            continue
+        result[key] = windatetime_to_datetime(result[key])
+    for key in ("FileSize", "FileIndex"):
+        if f"{key}Low" not in keys:
+            continue
+        low = result.pop(f"{key}Low")
+        high = result.pop(f"{key}High")
+        result[key] = high << 32 | low
+    return result
+
+
 def file_info_to_dict(file_info):
     keys = (
         "FileAttributes",
@@ -53,13 +68,10 @@ def file_info_to_dict(file_info):
         "FileIndexHigh",
         "FileIndexLow",
     )
-    result = dict(zip(keys, file_info))
-    for key in ("CreationTime", "LastAccessTime", "LastWriteTime"):
-        result[key] = windatetime_to_datetime(result[key])
-    return result
+    return create_result_dict(file_info, keys)
 
 
-def find_data_to_dict(file_info):
+def find_data_to_dict(find_data):
     keys = (
         "FileAttributes",
         "CreationTime",
@@ -72,10 +84,7 @@ def find_data_to_dict(file_info):
         "FileName",
         "AlternateFileName",
     )
-    result = dict(zip(keys, file_info))
-    for key in ("CreationTime", "LastAccessTime", "LastWriteTime"):
-        result[key] = windatetime_to_datetime(result[key])
-    return result
+    return create_result_dict(find_data, keys)
 
 
 # Operations
@@ -160,12 +169,40 @@ def remove_directory(path):
 
 
 def find_files(path):
+    # Windows API call
     lst = win32file.FindFilesW(path)
+
+    # Convert find data to a list of dict
     return list(map(find_data_to_dict, lst))
 
 
 def move_file_ex(path, new_file_name, flags):
+    # Windows API call
     win32file.MoveFileExW(path, new_file_name, flags)
+
+
+def set_end_of_file(path, length):
+    # First windows API call
+    handle = win32file.CreateFileW(
+        path,
+        SYMBOLS.GENERIC_WRITE,
+        SYMBOLS.FILE_SHARE_READ | SYMBOLS.FILE_SHARE_WRITE | SYMBOLS.FILE_SHARE_DELETE,
+        None,
+        SYMBOLS.OPEN_EXISTING,
+        SYMBOLS.FILE_FLAG_OPEN_REPARSE_POINT | SYMBOLS.FILE_FLAG_BACKUP_SEMANTICS,
+        0,
+    )
+
+    # Second windows API call
+    assert handle != win32file.INVALID_HANDLE_VALUE
+    win32file.SetFileInformationByHandle(
+        handle, SYMBOLS.FileEndOfFileInfo, length,
+    )
+
+    # Close the handle
+    # This is necessary since we use a single process
+    # for running all the commands from a single test case
+    win32file.CloseHandle(handle)
 
 
 OPERATIONS = {
@@ -177,6 +214,7 @@ OPERATIONS = {
     "RemoveDirectory": remove_directory,
     "FindFiles": find_files,
     "MoveFileEx": move_file_ex,
+    "SetEndOfFile": set_end_of_file,
 }
 
 
@@ -243,7 +281,7 @@ def process_runner():
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
-    if module_number > 4:
+    if module_number > 5:
         pytest.xfail()
 
     do_expect = partial(expect, file_system_path, process_runner)
