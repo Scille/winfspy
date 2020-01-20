@@ -324,11 +324,13 @@ def process_runner():
 
 
 @pytest.mark.parametrize(
-    "test_module_path", TEST_MODULES, ids=list(map(str, TEST_MODULES)),
+    "test_module_path", TEST_MODULES, ids=[path.name for path in TEST_MODULES],
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
-    if module_number > 6:
+
+    # Test with concurrent accesses or security descriptors are currently not supported
+    if module_number > 7:
         pytest.xfail()
 
     do_expect = partial(expect, file_system_path, process_runner)
