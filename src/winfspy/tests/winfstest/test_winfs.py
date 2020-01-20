@@ -4,6 +4,8 @@ import os
 import uuid
 import types
 import pathlib
+
+from datetime import datetime
 from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 
@@ -29,6 +31,52 @@ def get_test_modules(base="cases"):
 TEST_MODULES = list(get_test_modules())
 SYMBOL_DICT = {**win32api.__dict__, **win32con.__dict__, **win32file.__dict__, **winnt.__dict__}
 SYMBOLS = types.SimpleNamespace(**SYMBOL_DICT)
+
+
+# Helpers
+
+
+def windatetime_to_datetime(windatetime):
+    string = str(windatetime)
+    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S.%f%z")
+
+
+def file_info_to_dict(file_info):
+    keys = (
+        "FileAttributes",
+        "CreationTime",
+        "LastAccessTime",
+        "LastWriteTime",
+        "VolumeSerialNumber",
+        "FileSizeHigh",
+        "FileSizeLow",
+        "NumberOfLinks",
+        "FileIndexHigh",
+        "FileIndexLow",
+    )
+    result = dict(zip(keys, file_info))
+    for key in ("CreationTime", "LastAccessTime", "LastWriteTime"):
+        result[key] = windatetime_to_datetime(result[key])
+    return result
+
+
+def find_data_to_dict(file_info):
+    keys = (
+        "FileAttributes",
+        "CreationTime",
+        "LastAccessTime",
+        "LastWriteTime",
+        "FileSizeHigh",
+        "FileSizeLow",
+        "Reserved0",
+        "Reserved1",
+        "FileName",
+        "AlternateFileName",
+    )
+    result = dict(zip(keys, file_info))
+    for key in ("CreationTime", "LastAccessTime", "LastWriteTime"):
+        result[key] = windatetime_to_datetime(result[key])
+    return result
 
 
 # Operations
@@ -90,26 +138,8 @@ def get_file_information(path):
     # for running all the commands from a single test case
     win32file.CloseHandle(handle)
 
-    # Craft the result dictionary
-    keys = (
-        "FileAttributes",
-        "CreationTime",
-        "LastAccessTime",
-        "LastWriteTime",
-        "VolumeSerialNumber",
-        "FileSizeHigh",
-        "FileSizeLow",
-        "NumberOfLinks",
-        "FileIndexHigh",
-        "FileIndexLow",
-    )
-    result = dict(zip(keys, file_info))
-
-    # Ignore time attributes for the moment
-    result["CreationTime"] = None
-    result["LastAccessTime"] = None
-    result["LastWriteTime"] = None
-    return result
+    # Convert file info into a dictionary
+    return file_info_to_dict(file_info)
 
 
 def set_file_attributes(path, file_attributes):
@@ -130,6 +160,11 @@ def remove_directory(path):
     win32file.RemoveDirectory(path)
 
 
+def find_files(path):
+    lst = win32file.FindFilesW(path)
+    return list(map(find_data_to_dict, lst))
+
+
 OPERATIONS = {
     "CreateFile": create_file,
     "DeleteFile": delete_file,
@@ -137,6 +172,7 @@ OPERATIONS = {
     "SetFileAttributes": set_file_attributes,
     "CreateDirectory": create_directory,
     "RemoveDirectory": remove_directory,
+    "FindFiles": find_files,
 }
 
 
@@ -169,7 +205,7 @@ def expect(base_path, runner, cmd, expected):
         if callable(expected):
             assert expected((result,))
         print(f"-> OK: {result}")
-        return
+        return None, result
 
     with pytest.raises(pywintypes.error) as context:
         runner(operation, path, *args, **kwargs)
@@ -177,9 +213,14 @@ def expect(base_path, runner, cmd, expected):
     errno, _, message = context.value.args
     assert errno == getattr(winerror, expected), f"Expected {expected}, got {message}"
     print(f"-> OK: expected errno {errno}")
+    return errno, None
 
 
 # Tests
+
+
+def assert_(value):
+    assert value
 
 
 @pytest.fixture
@@ -197,11 +238,16 @@ def process_runner():
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
-    if module_number > 2:
+    if module_number > 3:
         pytest.xfail()
 
     do_expect = partial(expect, file_system_path, process_runner)
-    globs = {"uniqname": unique_name, "expect": do_expect, "testdone": lambda: None}
+    globs = {
+        "uniqname": unique_name,
+        "expect": do_expect,
+        "testeval": assert_,
+        "testdone": lambda: None,
+    }
     test_module = open(test_module_path).read()
     test_module = test_module.replace("from winfstest import *", "")
     exec(test_module, globs)
