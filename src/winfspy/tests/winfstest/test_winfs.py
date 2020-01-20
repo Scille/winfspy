@@ -36,8 +36,7 @@ SYMBOLS = types.SimpleNamespace(**SYMBOL_DICT)
 
 
 def windatetime_to_datetime(windatetime):
-    string = str(windatetime)
-    return datetime.strptime(string, "%Y-%m-%d %H:%M:%S.%f%z")
+    return windatetime.isoformat().replace("+00:00", "Z")
 
 
 def create_result_dict(info, keys):
@@ -205,6 +204,44 @@ def set_end_of_file(path, length):
     win32file.CloseHandle(handle)
 
 
+def set_file_time(path, creation_time, last_access_time, last_write_time):
+    # First windows API call
+    handle = win32file.CreateFileW(
+        path,
+        SYMBOLS.GENERIC_WRITE,
+        SYMBOLS.FILE_SHARE_READ | SYMBOLS.FILE_SHARE_WRITE | SYMBOLS.FILE_SHARE_DELETE,
+        None,
+        SYMBOLS.OPEN_EXISTING,
+        SYMBOLS.FILE_FLAG_OPEN_REPARSE_POINT | SYMBOLS.FILE_FLAG_BACKUP_SEMANTICS,
+        0,
+    )
+
+    # Prepare arguments
+    def prepare(x):
+        if x == 0:
+            return None
+        if isinstance(x, int):
+            from datetime import timezone
+
+            x = datetime(year=x, month=1, day=1, tzinfo=timezone.utc)
+        return x
+
+    creation_time = prepare(creation_time)
+    last_access_time = prepare(last_access_time)
+    last_write_time = prepare(last_write_time)
+
+    # Second windows API call
+    assert handle != win32file.INVALID_HANDLE_VALUE
+    win32file.SetFileTime(
+        handle, creation_time, last_access_time, last_write_time,
+    )
+
+    # Close the handle
+    # This is necessary since we use a single process
+    # for running all the commands from a single test case
+    win32file.CloseHandle(handle)
+
+
 OPERATIONS = {
     "CreateFile": create_file,
     "DeleteFile": delete_file,
@@ -215,6 +252,7 @@ OPERATIONS = {
     "FindFiles": find_files,
     "MoveFileEx": move_file_ex,
     "SetEndOfFile": set_end_of_file,
+    "SetFileTime": set_file_time,
 }
 
 
@@ -226,6 +264,10 @@ def unique_name():
 
 
 def expect(base_path, runner, cmd, expected):
+    """Test routine that complies with the semantics of the winfstest test cases
+
+    Return a tuple corresponding to: (errno, <result(s) iterable>)
+    """
     print(f"Running: {cmd}")
     print(f"-> expecting: {expected}")
 
@@ -238,7 +280,10 @@ def expect(base_path, runner, cmd, expected):
     def parse(x):
         if x.startswith("%s"):
             return x % base_path
-        return eval(x, SYMBOL_DICT)
+        try:
+            return datetime.fromisoformat(x + "+00:00")
+        except ValueError:
+            return eval(x, SYMBOL_DICT)
 
     operation = OPERATIONS[args[0]]
     args = list(map(parse, args[1:]))
@@ -248,6 +293,8 @@ def expect(base_path, runner, cmd, expected):
         if callable(expected):
             assert expected((result,))
         print(f"-> OK: {result}")
+        if not isinstance(result, list):
+            result = (result,)
         return None, result
 
     with pytest.raises(pywintypes.error) as context:
@@ -281,7 +328,7 @@ def process_runner():
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
-    if module_number > 5:
+    if module_number > 6:
         pytest.xfail()
 
     do_expect = partial(expect, file_system_path, process_runner)
