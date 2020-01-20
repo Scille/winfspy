@@ -137,12 +137,14 @@ def nt_error(status):
 
 
 def cook_ntstatus(status):
-    for candidate in NTSTATUS:
-        if candidate.value == status:
-            return candidate
+    try:
+        return NTSTATUS(status)
+    except ValueError:
+        return NTSTATUS.STATUS_UNKNOWN
 
 
-class NTSTATUS(enum.IntEnum):
+class NTSTATUS(enum.IntEnum):  # pragma: no cover
+    STATUS_UNKNOWN = -1
     STATUS_SUCCESS = 0x0
     STATUS_WAIT_0 = 0x0
     STATUS_WAIT_1 = 0x1

@@ -1,5 +1,6 @@
 import sys
 import logging
+import threading
 from typing import List
 from functools import wraps
 
@@ -14,6 +15,8 @@ logger = logging.getLogger("winfspy")
 def _catch_unhandled_exceptions(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        if sys.gettrace() != threading._trace_hook:
+            sys.settrace(threading._trace_hook)
         try:
             return fn(*args, **kwargs)
 

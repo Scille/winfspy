@@ -1,3 +1,8 @@
+"""A memory file system implemented on top of winfspy.
+
+Useful for testing and as a reference.
+"""
+
 import sys
 import time
 import logging
@@ -22,9 +27,6 @@ from winfspy import (
 from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
 
-thread_lock = threading.Lock()
-
-
 def operation(fn):
     """Decorator for file system operations.
 
@@ -37,7 +39,7 @@ def operation(fn):
         head = args[0] if args else None
         tail = args[1:] if args else ()
         try:
-            with thread_lock:
+            with self._thread_lock:
                 result = fn(self, *args, **kwargs)
         except Exception as exc:
             logging.info(f" NOK | {name:20} | {head!r:20} | {tail!r:20} | {exc!r}")
@@ -54,8 +56,9 @@ class BaseFileObj:
     def name(self):
         return self.path.name
 
-    def __init__(self, path):
+    def __init__(self, path, attributes):
         self.path = path
+        self.attributes = attributes
         now = filetime_now()
         self.creation_time = now
         self.last_access_time = now
@@ -84,10 +87,11 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-    def __init__(self, path, data=b""):
-        super().__init__(path)
+    def __init__(self, path, attributes, data=b""):
+        super().__init__(path, attributes)
         self.data = bytearray(data)
-        self.attributes = FILE_ATTRIBUTE.FILE_ATTRIBUTE_NORMAL
+        self.attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
+        assert not self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
     @property
     def file_size(self):
@@ -102,11 +106,11 @@ class FileObj(BaseFileObj):
 
 
 class FolderObj(BaseFileObj):
-    def __init__(self, path):
-        super().__init__(path)
+    def __init__(self, path, attributes):
+        super().__init__(path, attributes)
         self.file_size = 0
         self.allocation_size = 0
-        self.attributes = FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
+        assert self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
 
 class OpenedObj:
@@ -126,6 +130,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         max_file_nodes = 1024
         max_file_size = 16 * 1024 * 1024
         file_nodes = 1
+
         self._volume_info = {
             "total_size": max_file_nodes * max_file_size,
             "free_size": (max_file_nodes - file_nodes) * max_file_size,
@@ -134,8 +139,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         self._root_path = PureWindowsPath("/")
         self._entries = {
-            self._root_path: FolderObj(self._root_path),
+            self._root_path: FolderObj(self._root_path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY),
         }
+        self._thread_lock = threading.Lock()
 
     @operation
     def get_volume_info(self):
@@ -181,17 +187,18 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         try:
             parent_file_obj = self._entries[file_name.parent]
             if isinstance(parent_file_obj, FileObj):
-                # TODO: check this code is ok
                 raise NTStatusNotADirectory()
         except KeyError:
             raise NTStatusObjectNameNotFound()
 
-        # TODO: handle file_attributes
+        # File/Folder already exists
+        if file_name in self._entries:
+            raise NTStatusObjectNameCollision()
 
         if create_options & CREATE_FILE_CREATE_OPTIONS.FILE_DIRECTORY_FILE:
-            file_obj = self._entries[file_name] = FolderObj(file_name)
+            file_obj = self._entries[file_name] = FolderObj(file_name, file_attributes)
         else:
-            file_obj = self._entries[file_name] = FileObj(file_name)
+            file_obj = self._entries[file_name] = FileObj(file_name, file_attributes)
 
         return OpenedObj(file_obj)
 
@@ -220,7 +227,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         if new_file_name in self._entries:
             if not replace_if_exists:
                 raise NTStatusObjectNameCollision()
-            if isinstance(file_obj, FileObj):
+            if not isinstance(file_obj, FileObj):
                 raise NTStatusAccessDenied()
 
         for entry_path in list(self._entries):
@@ -269,7 +276,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         file_obj = file_context.file_obj
         if file_attributes != FILE_ATTRIBUTE.INVALID_FILE_ATTRIBUTES:
-            file_obj.file_attributes = file_attributes
+            file_obj.attributes = file_attributes
         if creation_time:
             file_obj.creation_time = creation_time
         if last_access_time:
@@ -283,12 +290,14 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def set_file_size(self, file_context, new_size, set_allocation_size):
-
         file_obj = file_context.file_obj
-        if not set_allocation_size:
+        if set_allocation_size:
             if new_size < file_obj.file_size:
                 file_obj.data = file_obj.data[:new_size]
-            elif new_size > file_obj.file_size:
+        else:
+            if new_size < file_obj.file_size:
+                file_obj.data = file_obj.data[:new_size]
+            if new_size > file_obj.file_size:
                 file_obj.data = file_obj.data + bytearray(new_size - file_obj.file_size)
 
     @operation
@@ -398,8 +407,23 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             except KeyError:
                 raise NTStatusObjectNameNotFound()
 
+    @operation
+    def overwrite(
+        self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
+    ) -> None:
+        file_obj = file_context.file_obj
+        file_attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
+        if replace_file_attributes:
+            file_obj.attributes = file_attributes
+        else:
+            file_obj.attributes |= file_attributes
+        if allocation_size < file_obj.file_size:
+            file_obj.data = file_obj.data[:allocation_size]
 
-def main(mountpoint, label, verbose, debug):
+
+def create_memory_file_system(
+    mountpoint, label="memfs", verbose=True, debug=False,
+):
     if debug:
         enable_debug_log()
     if verbose:
@@ -407,7 +431,7 @@ def main(mountpoint, label, verbose, debug):
 
     operations = InMemoryFileSystemOperations(label)
     fs = FileSystem(
-        mountpoint,
+        str(mountpoint),
         operations,
         sector_size=512,
         sectors_per_allocation_unit=1,
@@ -420,12 +444,17 @@ def main(mountpoint, label, verbose, debug):
         persistent_acls=1,
         post_cleanup_when_modified_only=1,
         um_file_context_is_user_context2=1,
-        file_system_name=mountpoint,
+        file_system_name=str(mountpoint),
         prefix="",
         debug=debug,
         # security_timeout_valid=1,
         # security_timeout=10000,
     )
+    return fs
+
+
+def main(mountpoint, label, verbose, debug):
+    fs = create_memory_file_system(mountpoint, label, verbose, debug)
     try:
         print("Starting FS")
         fs.start()
@@ -442,7 +471,8 @@ def main(mountpoint, label, verbose, debug):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mountpoint")
-    parser.add_argument("-v", dest="verbose", action="store_true")
-    parser.add_argument("-d", dest="debug", action="store_true")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-l", "--label", type=str, default="memfs")
     args = parser.parse_args()
-    main(args.mountpoint, "touille", args.verbose, args.debug)
+    main(args.mountpoint, args.label, args.verbose, args.debug)

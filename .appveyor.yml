@@ -45,10 +45,10 @@ build_script:
         Invoke-Expression "pre-commit run --all-files"
         if($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode )  }
       }
-  - pip install .
+  - pip install .[test]
 
 test_script:
-  - py.test tests/ -vvv
+  - pytest -vvv
 
 after_test:
   - python setup.py bdist_wheel
@@ -70,3 +70,7 @@ deploy_script:
   - set HOME=%USERPROFILE%
   - ps: If ($env:APPVEYOR_REPO_TAG -eq "true") { Invoke-Expression "twine upload --verbose --skip-existing dist/*.whl" } Else { write-output "Not on a tag, won't deploy to pypi"}
   - echo "Finished Artifact Deployment"
+
+on_success:
+  - pip install -U --user codecov
+  - python -m codecov
