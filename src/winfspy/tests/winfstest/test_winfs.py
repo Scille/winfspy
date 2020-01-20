@@ -4,8 +4,8 @@ import uuid
 import types
 import pathlib
 
-from datetime import datetime
 from functools import partial
+from datetime import datetime, timezone
 from concurrent.futures import ProcessPoolExecutor
 
 import pytest
@@ -268,8 +268,10 @@ def expect(base_path, runner, cmd, expected):
 
     Return a tuple corresponding to: (errno, <result(s) iterable>)
     """
-    print(f"Running: {cmd}")
-    print(f"-> expecting: {expected}")
+    expected = expected or None
+    print(f"** Running command:")
+    print(f"-> {cmd}")
+    print(f"-> Expecting: {expected}")
 
     args = cmd.split()
     kwargs = {}
@@ -281,7 +283,8 @@ def expect(base_path, runner, cmd, expected):
         if x.startswith("%s"):
             return x % base_path
         try:
-            return datetime.fromisoformat(x + "+00:00")
+            dt = datetime.strptime(x, "%Y-%m-%dT%H:%M:%S")
+            return dt.replace(tzinfo=timezone.utc)
         except ValueError:
             return eval(x, SYMBOL_DICT)
 
@@ -290,9 +293,10 @@ def expect(base_path, runner, cmd, expected):
 
     if not expected or callable(expected):
         result = runner(operation, *args, **kwargs)
+        print(f"-> Got: {result}")
         if callable(expected):
             assert expected((result,))
-        print(f"-> OK: {result}")
+
         if not isinstance(result, list):
             result = (result,)
         return None, result
@@ -301,8 +305,8 @@ def expect(base_path, runner, cmd, expected):
         runner(operation, *args, **kwargs)
 
     errno, _, message = context.value.args
+    print(f"-> Got: errno={errno}, message={message!r}")
     assert errno == getattr(winerror, expected), f"Expected {expected}, got {message}"
-    print(f"-> OK: expected errno {errno}")
     return errno, None
 
 
@@ -341,5 +345,11 @@ def test_winfs(test_module_path, file_system_path, process_runner):
         "testdone": lambda: None,
     }
     test_module = open(test_module_path).read()
+
+    print(f"Running test module {test_module_path.name}:")
+    print("```")
+    print(test_module)
+    print("```")
+
     test_module = test_module.replace("from winfstest import *", "")
     exec(test_module, globs)
