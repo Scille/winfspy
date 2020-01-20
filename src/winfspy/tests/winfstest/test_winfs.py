@@ -1,6 +1,5 @@
 """Test suite for windows file system."""
 
-import os
 import uuid
 import types
 import pathlib
@@ -165,6 +164,10 @@ def find_files(path):
     return list(map(find_data_to_dict, lst))
 
 
+def move_file_ex(path, new_file_name, flags):
+    win32file.MoveFileExW(path, new_file_name, flags)
+
+
 OPERATIONS = {
     "CreateFile": create_file,
     "DeleteFile": delete_file,
@@ -173,6 +176,7 @@ OPERATIONS = {
     "CreateDirectory": create_directory,
     "RemoveDirectory": remove_directory,
     "FindFiles": find_files,
+    "MoveFileEx": move_file_ex,
 }
 
 
@@ -180,7 +184,7 @@ OPERATIONS = {
 
 
 def unique_name():
-    return str(uuid.uuid4()) + ".txt"
+    return f"%s\\{uuid.uuid4()}"
 
 
 def expect(base_path, runner, cmd, expected):
@@ -194,21 +198,22 @@ def expect(base_path, runner, cmd, expected):
         kwargs["raise_last_error"] = True
 
     def parse(x):
+        if x.startswith("%s"):
+            return x % base_path
         return eval(x, SYMBOL_DICT)
 
     operation = OPERATIONS[args[0]]
-    path = os.path.join(base_path, args[1])
-    args = list(map(parse, args[2:]))
+    args = list(map(parse, args[1:]))
 
     if not expected or callable(expected):
-        result = runner(operation, path, *args, **kwargs)
+        result = runner(operation, *args, **kwargs)
         if callable(expected):
             assert expected((result,))
         print(f"-> OK: {result}")
         return None, result
 
     with pytest.raises(pywintypes.error) as context:
-        runner(operation, path, *args, **kwargs)
+        runner(operation, *args, **kwargs)
 
     errno, _, message = context.value.args
     assert errno == getattr(winerror, expected), f"Expected {expected}, got {message}"
@@ -238,7 +243,7 @@ def process_runner():
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
-    if module_number > 3:
+    if module_number > 4:
         pytest.xfail()
 
     do_expect = partial(expect, file_system_path, process_runner)
