@@ -4,8 +4,8 @@ import uuid
 import types
 import pathlib
 
-from datetime import datetime
 from functools import partial
+from datetime import datetime, timezone
 from concurrent.futures import ProcessPoolExecutor
 
 import pytest
@@ -283,7 +283,8 @@ def expect(base_path, runner, cmd, expected):
         if x.startswith("%s"):
             return x % base_path
         try:
-            return datetime.fromisoformat(x + "+00:00")
+            dt = datetime.strptime(x, "%Y-%m-%dT%H:%M:%S")
+            return dt.replace(tzinfo=timezone.utc)
         except ValueError:
             return eval(x, SYMBOL_DICT)
 
