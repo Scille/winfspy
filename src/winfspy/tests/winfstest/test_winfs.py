@@ -15,6 +15,7 @@ import win32con
 import win32file
 import winerror
 import winnt
+import win32security
 import pywintypes
 
 
@@ -100,13 +101,24 @@ def create_file(
     zero=0,
     raise_last_error=False,
 ):
-    # Security descriptors are not supported in the tests at the moment
+    # Create security attributes
     assert zero == 0
-    assert sddl == 0
+    security_attributes = win32security.SECURITY_ATTRIBUTES()
+    security_attributes.bInheritHandle = 0
+    if sddl:
+        security_attributes.SECURITY_DESCRIPTOR = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
+            sddl, win32security.SDDL_REVISION_1,
+        )
 
     # Windows API call
-    handle = win32file.CreateFileW(
-        path, desired_access, share_mode, None, creation_disposition, flags_and_attributes, 0
+    handle = win32file.CreateFile(
+        path,
+        desired_access,
+        share_mode,
+        security_attributes,
+        creation_disposition,
+        flags_and_attributes,
+        0,
     )
 
     # Close the handle
@@ -127,7 +139,7 @@ def delete_file(path):
 
 def get_file_information(path):
     # First windows API call
-    handle = win32file.CreateFileW(
+    handle = win32file.CreateFile(
         path,
         SYMBOLS.FILE_READ_ATTRIBUTES,
         SYMBOLS.FILE_SHARE_READ | SYMBOLS.FILE_SHARE_WRITE | SYMBOLS.FILE_SHARE_DELETE,
@@ -152,15 +164,20 @@ def get_file_information(path):
 
 def set_file_attributes(path, file_attributes):
     # Windows API call
-    win32file.SetFileAttributesW(path, file_attributes)
+    win32file.SetFileAttributes(path, file_attributes)
 
 
 def create_directory(path, sddl):
-    # Security descriptors are not supported in the tests at the moment
-    assert sddl == 0
+    # Create security attributes
+    security_attributes = win32security.SECURITY_ATTRIBUTES()
+    security_attributes.bInheritHandle = 0
+    if sddl:
+        security_attributes.SECURITY_DESCRIPTOR = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
+            sddl, win32security.SDDL_REVISION_1,
+        )
 
     # Windows API call
-    win32file.CreateDirectoryW(path, None)
+    win32file.CreateDirectory(path, security_attributes)
 
 
 def remove_directory(path):
@@ -178,12 +195,12 @@ def find_files(path):
 
 def move_file_ex(path, new_file_name, flags):
     # Windows API call
-    win32file.MoveFileExW(path, new_file_name, flags)
+    win32file.MoveFileEx(path, new_file_name, flags)
 
 
 def set_end_of_file(path, length):
     # First windows API call
-    handle = win32file.CreateFileW(
+    handle = win32file.CreateFile(
         path,
         SYMBOLS.GENERIC_WRITE,
         SYMBOLS.FILE_SHARE_READ | SYMBOLS.FILE_SHARE_WRITE | SYMBOLS.FILE_SHARE_DELETE,
@@ -243,6 +260,33 @@ def set_file_time(path, creation_time, last_access_time, last_write_time):
     win32file.CloseHandle(handle)
 
 
+def get_file_security(path, info):
+    # Windows API call
+    descriptor = win32security.GetFileSecurity(path, info)
+
+    # Extract SDDL
+    sddl = win32security.ConvertSecurityDescriptorToStringSecurityDescriptor(
+        descriptor,
+        win32security.SDDL_REVISION_1,
+        win32security.OWNER_SECURITY_INFORMATION
+        | win32security.GROUP_SECURITY_INFORMATION
+        | win32security.DACL_SECURITY_INFORMATION
+        | win32security.SACL_SECURITY_INFORMATION,
+    )
+
+    return {"Sddl": sddl}
+
+
+def set_file_security(path, info, sddl):
+    # Create security descriptor
+    descriptor = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
+        sddl, win32security.SDDL_REVISION_1,
+    )
+
+    # Windows api call
+    win32security.SetFileSecurity(path, info, descriptor)
+
+
 OPERATIONS = {
     "CreateFile": create_file,
     "DeleteFile": delete_file,
@@ -254,6 +298,8 @@ OPERATIONS = {
     "MoveFileEx": move_file_ex,
     "SetEndOfFile": set_end_of_file,
     "SetFileTime": set_file_time,
+    "GetFileSecurity": get_file_security,
+    "SetFileSecurity": set_file_security,
 }
 
 
@@ -265,11 +311,17 @@ def unique_name():
 
 
 def parse_argument(path, arg):
+    # Path
     if arg.startswith("%s"):
         return arg % path
+    # Security descriptor
+    if ";" in arg:
+        return arg
+    # Date time
     try:
         dt = datetime.strptime(arg, "%Y-%m-%dT%H:%M:%S")
         return dt.replace(tzinfo=timezone.utc)
+    # Symbol
     except ValueError:
         return eval(arg, SYMBOL_DICT)
 
@@ -343,8 +395,8 @@ def expect_task(parser, runner, cmd, expected=None):
 
     # Windows API call
     # This is not performed through the process executor because we want to keep an open handle.
-    # CreateFileW doesn't seem to produce deadlocks so it seems fine.
-    handle = win32file.CreateFileW(
+    # CreateFile doesn't seem to produce deadlocks so it seems fine.
+    handle = win32file.CreateFile(
         path, desired_access, share_mode, None, creation_disposition, flags_and_attributes, 0
     )
     assert handle != win32file.INVALID_HANDLE_VALUE
@@ -379,12 +431,6 @@ def process_runner():
     "test_module_path", TEST_MODULES, ids=[path.name for path in TEST_MODULES],
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
-    module_number = int(test_module_path.name[:2])
-
-    # Test with concurrent accesses or security descriptors are currently not supported
-    if module_number > 9:
-        pytest.xfail()
-
     parser = partial(parse_argument, file_system_path)
     do_expect = partial(expect, parser, process_runner)
     do_expect_task = partial(expect_task, parser, process_runner)
