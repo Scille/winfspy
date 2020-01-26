@@ -5,6 +5,7 @@ import types
 import pathlib
 
 from functools import partial
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from concurrent.futures import ProcessPoolExecutor
 
@@ -263,7 +264,17 @@ def unique_name():
     return f"%s\\{uuid.uuid4()}"
 
 
-def expect(base_path, runner, cmd, expected):
+def parse_argument(path, arg):
+    if arg.startswith("%s"):
+        return arg % path
+    try:
+        dt = datetime.strptime(arg, "%Y-%m-%dT%H:%M:%S")
+        return dt.replace(tzinfo=timezone.utc)
+    except ValueError:
+        return eval(arg, SYMBOL_DICT)
+
+
+def expect(parser, runner, cmd, expected):
     """Test routine that complies with the semantics of the winfstest test cases
 
     Return a tuple corresponding to: (errno, <result(s) iterable>)
@@ -279,17 +290,8 @@ def expect(base_path, runner, cmd, expected):
         args = args[1:]
         kwargs["raise_last_error"] = True
 
-    def parse(x):
-        if x.startswith("%s"):
-            return x % base_path
-        try:
-            dt = datetime.strptime(x, "%Y-%m-%dT%H:%M:%S")
-            return dt.replace(tzinfo=timezone.utc)
-        except ValueError:
-            return eval(x, SYMBOL_DICT)
-
     operation = OPERATIONS[args[0]]
-    args = list(map(parse, args[1:]))
+    args = list(map(parser, args[1:]))
 
     if not expected or callable(expected):
         result = runner(operation, *args, **kwargs)
@@ -308,6 +310,52 @@ def expect(base_path, runner, cmd, expected):
     print(f"-> Got: errno={errno}, message={message!r}")
     assert errno == getattr(winerror, expected), f"Expected {expected}, got {message}"
     return errno, None
+
+
+@contextmanager
+def expect_task(parser, runner, cmd, expected=None):
+    """Provide a context manager that keeps the produced handle open"""
+
+    # Only CreateFile is supported with expect_task
+    args = cmd.split()
+    expected = expected or None
+    assert not expected
+    assert args[0] == "CreateFile"
+
+    print(f"** Running command:")
+    print(f"-> {cmd}")
+    print(f"-> Expecting a handle to keep open")
+
+    # Unpack args
+    (
+        path,
+        desired_access,
+        share_mode,
+        sddl,
+        creation_disposition,
+        flags_and_attributes,
+        zero,
+    ) = map(parser, args[1:])
+
+    # Security descriptors are not supported in the tests at the moment
+    assert zero == 0
+    assert sddl == 0
+
+    # Windows API call
+    # This is not performed through the process executor because we want to keep an open handle.
+    # CreateFileW doesn't seem to produce deadlocks so it seems fine.
+    handle = win32file.CreateFileW(
+        path, desired_access, share_mode, None, creation_disposition, flags_and_attributes, 0
+    )
+    assert handle != win32file.INVALID_HANDLE_VALUE
+
+    # Yield to the open handle context
+    print(f"-> Keeping {handle} open")
+    yield
+
+    # Close the handle
+    print(f"** Closing: {handle}")
+    win32file.CloseHandle(handle)
 
 
 # Tests
@@ -334,15 +382,18 @@ def test_winfs(test_module_path, file_system_path, process_runner):
     module_number = int(test_module_path.name[:2])
 
     # Test with concurrent accesses or security descriptors are currently not supported
-    if module_number > 7:
+    if module_number > 9:
         pytest.xfail()
 
-    do_expect = partial(expect, file_system_path, process_runner)
+    parser = partial(parse_argument, file_system_path)
+    do_expect = partial(expect, parser, process_runner)
+    do_expect_task = partial(expect_task, parser, process_runner)
     globs = {
         "uniqname": unique_name,
         "expect": do_expect,
         "testeval": assert_,
         "testdone": lambda: None,
+        "expect_task": do_expect_task,
     }
     test_module = open(test_module_path).read()
 
