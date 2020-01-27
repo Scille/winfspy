@@ -4,7 +4,7 @@ import threading
 from typing import List
 from functools import wraps
 
-from .plumbing.winstuff import NTSTATUS
+from .plumbing.winstuff import NTSTATUS, SecurityDescriptor
 from .plumbing.bindings import lib, ffi
 from .exceptions import NTStatusError
 
@@ -176,7 +176,7 @@ class BaseFileSystemOperations:
 
         # `granted_access` is already handle by winfsp
 
-        # TODO: think about security descriptor handling...
+        security_descriptor = SecurityDescriptor.from_cpointer(security_descriptor)
 
         try:
             cooked_file_context = self.create(

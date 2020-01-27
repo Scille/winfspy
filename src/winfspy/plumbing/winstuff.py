@@ -1,4 +1,5 @@
 import enum
+from typing import NamedTuple, Any
 
 from .win32_filetime import dt_to_filetime, filetime_to_dt, filetime_now
 
@@ -25,10 +26,24 @@ __all__ = (
 )
 
 
-# TODO: should use `lib.LocalFree` to free generated security descriptor at one point
-class SecurityDescriptor:
-    # see https://docs.microsoft.com/fr-fr/windows/desktop/SecAuthZ/security-descriptor-string-format
-    def __init__(self, string_format):
+class SecurityDescriptor(NamedTuple):
+
+    handle: Any
+    size: int
+
+    @classmethod
+    def from_cpointer(cls, handle):
+        if handle == ffi.NULL:
+            return cls(ffi.NULL, 0)
+        size = lib.GetSecurityDescriptorLength(handle)
+        pointer = lib.malloc(size)
+        new_handle = ffi.cast("SECURITY_DESCRIPTOR*", pointer)
+        ffi.memmove(new_handle, handle, size)
+        return cls(new_handle, size)
+
+    @classmethod
+    def from_string(cls, string_format):
+        # see https://docs.microsoft.com/fr-fr/windows/desktop/SecAuthZ/security-descriptor-string-format
         psd = ffi.new("SECURITY_DESCRIPTOR**")
         psd_size = ffi.new("ULONG*")
         if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
@@ -38,9 +53,19 @@ class SecurityDescriptor:
                 f"Cannot create security descriptor `{string_format}`: "
                 f"{cook_ntstatus(lib.GetLastError())}"
             )
-        # assert lib.IsValidSecurityDescriptor(psd[0])
-        self.handle = psd[0]
-        self.size = psd_size[0]
+        return cls(psd[0], psd_size[0])
+
+    def evolve(self, security_information, modification_descriptor):
+        psd = ffi.new("SECURITY_DESCRIPTOR**")
+        lib.FspSetSecurityDescriptor(
+            self.handle, security_information, modification_descriptor, psd
+        )
+        handle = psd[0]
+        size = lib.GetSecurityDescriptorLength(handle)
+        return type(self)(handle, size)
+
+    def is_valid(self):
+        return bool(lib.IsValidSecurityDescriptor(self.handle))
 
     def __del__(self):
         lib.LocalFree(self.handle)
