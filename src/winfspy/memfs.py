@@ -66,6 +66,7 @@ class BaseFileObj:
         self.last_write_time = now
         self.change_time = now
         self.index_number = 0
+        self.file_size = 0
 
     def get_file_info(self):
         return {
@@ -84,28 +85,66 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-    def __init__(self, path, attributes, security_descriptor):
+
+    allocation_unit = 4096
+
+    def __init__(self, path, attributes, security_descriptor, allocation_size=0):
         super().__init__(path, attributes, security_descriptor)
-        self.data = bytearray()
+        self.data = bytearray(allocation_size)
         self.attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
         assert not self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
     @property
-    def file_size(self):
+    def allocation_size(self):
         return len(self.data)
 
-    @property
-    def allocation_size(self):
-        if len(self.data) % 4096 == 0:
-            return len(self.data)
-        else:
-            return ((len(self.data) // 4096) + 1) * 4096
+    def set_allocation_size(self, allocation_size):
+        if allocation_size < self.allocation_size:
+            self.data = self.data[:allocation_size]
+        if allocation_size > self.allocation_size:
+            self.data += bytearray(allocation_size - self.allocation_size)
+        assert self.allocation_size == allocation_size
+        self.file_size = min(self.file_size, allocation_size)
+
+    def adapt_allocation_size(self, file_size):
+        units = (file_size + self.allocation_unit - 1) // self.allocation_unit
+        self.set_allocation_size(units * self.allocation_unit)
+
+    def set_file_size(self, file_size):
+        if file_size < self.file_size:
+            zeros = bytearray(self.file_size - file_size)
+            self.data[file_size : self.file_size] = zeros
+        if file_size > self.allocation_size:
+            self.adapt_allocation_size(file_size)
+        self.file_size = file_size
+
+    def read(self, offset, length):
+        if offset >= self.file_size:
+            raise NTStatusEndOfFile()
+        end_offset = min(self.file_size, offset + length)
+        return self.data[offset:end_offset]
+
+    def write(self, buffer, offset, write_to_end_of_file):
+        if write_to_end_of_file:
+            offset = self.file_size
+        end_offset = offset + len(buffer)
+        if end_offset > self.file_size:
+            self.set_file_size(end_offset)
+        self.data[offset:end_offset] = buffer
+        return len(buffer)
+
+    def constrained_write(self, buffer, offset):
+        if offset >= self.file_size:
+            return 0
+        end_offset = min(self.file_size, offset + len(buffer))
+        transferred_length = end_offset - offset
+        self.data[offset:end_offset] = buffer[:transferred_length]
+        return transferred_length
 
 
 class FolderObj(BaseFileObj):
     def __init__(self, path, attributes, security_descriptor):
         super().__init__(path, attributes, security_descriptor)
-        self.file_size = 0
         self.allocation_size = 0
         assert self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
@@ -200,7 +239,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             )
         else:
             file_obj = self._entries[file_name] = FileObj(
-                file_name, file_attributes, security_descriptor
+                file_name, file_attributes, security_descriptor, allocation_size,
             )
 
         return OpenedObj(file_obj)
@@ -294,15 +333,10 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def set_file_size(self, file_context, new_size, set_allocation_size):
-        file_obj = file_context.file_obj
         if set_allocation_size:
-            if new_size < file_obj.file_size:
-                file_obj.data = file_obj.data[:new_size]
+            file_context.file_obj.set_allocation_size(new_size)
         else:
-            if new_size < file_obj.file_size:
-                file_obj.data = file_obj.data[:new_size]
-            if new_size > file_obj.file_size:
-                file_obj.data = file_obj.data + bytearray(new_size - file_obj.file_size)
+            file_context.file_obj.set_file_size(new_size)
 
     @operation
     def can_delete(self, file_context, file_name: str) -> None:
@@ -374,37 +408,20 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def read(self, file_context, offset, length):
-        file_obj = file_context.file_obj
-
-        if offset >= len(file_obj.data):
-            raise NTStatusEndOfFile()
-
-        return file_obj.data[offset : offset + length]
+        return file_context.file_obj.read(offset, length)
 
     @operation
     def write(self, file_context, buffer, offset, write_to_end_of_file, constrained_io):
-        file_obj = file_context.file_obj
-        length = len(buffer)
-
         if constrained_io:
-            if offset >= len(file_obj.data):
-                return 0
-            end_offset = min(len(file_obj.data), offset + length)
-            transferred_length = end_offset - offset
-            file_obj.data[offset:end_offset] = buffer[:transferred_length]
-            return transferred_length
-
+            return file_context.file_obj.constrained_write(buffer, offset)
         else:
-            if write_to_end_of_file:
-                offset = len(file_obj.data)
-            end_offset = offset + length
-            file_obj.data[offset:end_offset] = buffer
-            return length
+            return file_context.file_obj.write(buffer, offset, write_to_end_of_file)
 
     @operation
     def cleanup(self, file_context, file_name, flags) -> None:
         # TODO: expose FspCleanupDelete & friends
         FspCleanupDelete = 0x1
+        FspCleanupSetAllocationSize = 0x2
         path = file_context.file_obj.path
 
         # Tag as deleted
@@ -420,18 +437,26 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             except KeyError:
                 raise NTStatusObjectNameNotFound()
 
+        # Tag for a resize
+        if flags & FspCleanupSetAllocationSize:
+            file_size = file_context.file_obj.file_size
+            file_context.file_obj.adapt_allocation_size(file_size)
+
     @operation
     def overwrite(
         self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
     ) -> None:
         file_obj = file_context.file_obj
+
+        # File attributes
         file_attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
         if replace_file_attributes:
             file_obj.attributes = file_attributes
         else:
             file_obj.attributes |= file_attributes
-        if allocation_size < file_obj.file_size:
-            file_obj.data = file_obj.data[:allocation_size]
+
+        # Allocation size
+        file_obj.set_allocation_size(allocation_size)
 
 
 def create_memory_file_system(
