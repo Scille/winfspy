@@ -10,7 +10,6 @@ from winfspy.plumbing.get_winfsp_dir import get_winfsp_bin_dir
 from . import WINFSP_TESTS_EXECUTABLE
 
 MEMFS_XFAIL_LIST = [
-    "create_test",
     "create_allocation_test",
     "getfileinfo_test",
     "getfileinfo_name_test",

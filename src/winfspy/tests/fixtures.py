@@ -36,7 +36,7 @@ def file_system_path(request):
         yield path
         return
     drive = get_available_drive()
-    fs = create_memory_file_system(drive)
+    fs = create_memory_file_system(drive, verbose=True)
     fs.start()
     yield drive
     fs.stop()

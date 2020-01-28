@@ -403,11 +403,20 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def cleanup(self, file_context, file_name, flags) -> None:
-        # TODO: expose FspCleanupDelete&friends
-        if flags & 1:
-            file_name = PureWindowsPath(file_name)
+        # TODO: expose FspCleanupDelete & friends
+        FspCleanupDelete = 0x1
+        path = file_context.file_obj.path
+
+        # Tag as deleted
+        if flags & FspCleanupDelete:
+
+            # Check for non-empty direcory
+            if any(key.parent == path for key in self._entries):
+                return
+
+            # Delete immediately
             try:
-                del self._entries[file_name]
+                del self._entries[path]
             except KeyError:
                 raise NTStatusObjectNameNotFound()
 
