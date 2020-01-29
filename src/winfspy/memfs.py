@@ -420,27 +420,46 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
     @operation
     def cleanup(self, file_context, file_name, flags) -> None:
         # TODO: expose FspCleanupDelete & friends
-        FspCleanupDelete = 0x1
-        FspCleanupSetAllocationSize = 0x2
-        path = file_context.file_obj.path
+        FspCleanupDelete = 0x01
+        FspCleanupSetAllocationSize = 0x02
+        FspCleanupSetArchiveBit = 0x10
+        FspCleanupSetLastAccessTime = 0x20
+        FspCleanupSetLastWriteTime = 0x40
+        FspCleanupSetChangeTime = 0x80
+        file_obj = file_context.file_obj
 
-        # Tag as deleted
+        # Delete
         if flags & FspCleanupDelete:
 
             # Check for non-empty direcory
-            if any(key.parent == path for key in self._entries):
+            if any(key.parent == file_obj.path for key in self._entries):
                 return
 
             # Delete immediately
             try:
-                del self._entries[path]
+                del self._entries[file_obj.path]
             except KeyError:
                 raise NTStatusObjectNameNotFound()
 
-        # Tag for a resize
+        # Resize
         if flags & FspCleanupSetAllocationSize:
-            file_size = file_context.file_obj.file_size
-            file_context.file_obj.adapt_allocation_size(file_size)
+            file_obj.adapt_allocation_size(file_obj.file_size)
+
+        # Set archive bit
+        if flags & FspCleanupSetArchiveBit and isinstance(file_obj, FileObj):
+            file_obj.attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
+
+        # Set last access time
+        if flags & FspCleanupSetLastAccessTime:
+            file_obj.last_access_time = filetime_now()
+
+        # Set last access time
+        if flags & FspCleanupSetLastWriteTime:
+            file_obj.last_write_time = filetime_now()
+
+        # Set last access time
+        if flags & FspCleanupSetChangeTime:
+            file_obj.change_time = filetime_now()
 
     @operation
     def overwrite(
@@ -457,6 +476,12 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         # Allocation size
         file_obj.set_allocation_size(allocation_size)
+
+        # Set times
+        now = filetime_now()
+        file_obj.last_access_time = now
+        file_obj.last_write_time = now
+        file_obj.change_time = now
 
 
 def create_memory_file_system(
