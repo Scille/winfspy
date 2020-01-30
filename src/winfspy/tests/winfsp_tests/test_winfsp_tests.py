@@ -10,7 +10,6 @@ from winfspy.plumbing.get_winfsp_dir import get_winfsp_bin_dir
 from . import WINFSP_TESTS_EXECUTABLE
 
 MEMFS_XFAIL_LIST = [
-    "getfileinfo_test",
     "getfileinfo_name_test",
     "rename_caseins_test",
     "rdwr_noncached_test",

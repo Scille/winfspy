@@ -50,7 +50,7 @@ build_script:
   - pip install .[test]
 
 test_script:
-  - pytest --pyargs winfspy -vvv --cov
+  - pytest --pyargs winfspy --doctest-modules -vvv --cov
 
 after_test:
   - python setup.py bdist_wheel
