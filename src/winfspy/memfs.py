@@ -56,19 +56,16 @@ class BaseFileObj:
     def name(self):
         return self.path.name
 
-    def __init__(self, path, attributes):
+    def __init__(self, path, attributes, security_descriptor):
         self.path = path
         self.attributes = attributes
+        self.security_descriptor = security_descriptor
         now = filetime_now()
         self.creation_time = now
         self.last_access_time = now
         self.last_write_time = now
         self.change_time = now
         self.index_number = 0
-
-        self.security_descriptor = SecurityDescriptor(
-            "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
-        )
 
     def get_file_info(self):
         return {
@@ -87,9 +84,9 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-    def __init__(self, path, attributes, data=b""):
-        super().__init__(path, attributes)
-        self.data = bytearray(data)
+    def __init__(self, path, attributes, security_descriptor):
+        super().__init__(path, attributes, security_descriptor)
+        self.data = bytearray()
         self.attributes |= FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE
         assert not self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
 
@@ -106,8 +103,8 @@ class FileObj(BaseFileObj):
 
 
 class FolderObj(BaseFileObj):
-    def __init__(self, path, attributes):
-        super().__init__(path, attributes)
+    def __init__(self, path, attributes, security_descriptor):
+        super().__init__(path, attributes, security_descriptor)
         self.file_size = 0
         self.allocation_size = 0
         assert self.attributes & FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY
@@ -138,9 +135,12 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         }
 
         self._root_path = PureWindowsPath("/")
-        self._entries = {
-            self._root_path: FolderObj(self._root_path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY),
-        }
+        self._root_obj = FolderObj(
+            self._root_path,
+            FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY,
+            SecurityDescriptor.from_string("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"),
+        )
+        self._entries = {self._root_path: self._root_obj}
         self._thread_lock = threading.Lock()
 
     @operation
@@ -181,7 +181,6 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         # `granted_access` is already handle by winfsp
         # `allocation_size` useless for us
-        # `security_descriptor` is not supported yet
 
         # Retrieve file
         try:
@@ -196,21 +195,26 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             raise NTStatusObjectNameCollision()
 
         if create_options & CREATE_FILE_CREATE_OPTIONS.FILE_DIRECTORY_FILE:
-            file_obj = self._entries[file_name] = FolderObj(file_name, file_attributes)
+            file_obj = self._entries[file_name] = FolderObj(
+                file_name, file_attributes, security_descriptor
+            )
         else:
-            file_obj = self._entries[file_name] = FileObj(file_name, file_attributes)
+            file_obj = self._entries[file_name] = FileObj(
+                file_name, file_attributes, security_descriptor
+            )
 
         return OpenedObj(file_obj)
 
     @operation
     def get_security(self, file_context):
-        sd = file_context.file_obj.security_descriptor
-        return sd.handle, sd.size
+        return file_context.file_obj.security_descriptor
 
     @operation
     def set_security(self, file_context, security_information, modification_descriptor):
-        # TODO
-        pass
+        new_descriptor = file_context.file_obj.security_descriptor.evolve(
+            security_information, modification_descriptor
+        )
+        file_context.file_obj.security_descriptor = new_descriptor
 
     @operation
     def rename(self, file_context, file_name, new_file_name, replace_if_exists):
