@@ -492,6 +492,10 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         file_obj.last_write_time = now
         file_obj.change_time = now
 
+    @operation
+    def flush(self, file_context) -> None:
+        pass
+
 
 def create_memory_file_system(
     mountpoint, label="memfs", verbose=True, debug=False,

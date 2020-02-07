@@ -12,9 +12,7 @@ from . import WINFSP_TESTS_EXECUTABLE
 MEMFS_XFAIL_LIST = [
     # GetFinalPathNameByHandle is not supported at the moment
     "getfileinfo_name_test",
-    # Flushing - TODO: investigate
-    "flush_test",
-    # Reparsing - TODO: investigate
+    # Reparse point are not supported at the moment
     "reparse_guid_test",
     "reparse_nfs_test",
 ]
