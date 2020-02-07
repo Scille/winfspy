@@ -12,20 +12,8 @@ from . import WINFSP_TESTS_EXECUTABLE
 MEMFS_XFAIL_LIST = [
     # GetFinalPathNameByHandle is not supported at the moment
     "getfileinfo_name_test",
-    # RDWR - TODO: investigate
-    "rdwr_noncached_test",
-    "rdwr_noncached_overlapped_test",
-    "rdwr_cached_test",
-    "rdwr_cached_overlapped_test",
-    "rdwr_writethru_test",
-    "rdwr_writethru_overlapped_test",
     # Flushing - TODO: investigate
     "flush_test",
-    # Locking - TODO: investigate
-    "lock_noncached_test",
-    "lock_noncached_overlapped_test",
-    "lock_cached_test",
-    "lock_cached_overlapped_test",
     # Reparsing - TODO: investigate
     "reparse_guid_test",
     "reparse_nfs_test",
