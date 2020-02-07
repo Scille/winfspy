@@ -274,9 +274,12 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             raise NTStatusObjectNameNotFound()
 
         if new_file_name in self._entries:
-            if not replace_if_exists:
+            # Case-sensitive comparison
+            if new_file_name.name != self._entries[new_file_name].path.name:
+                pass
+            elif not replace_if_exists:
                 raise NTStatusObjectNameCollision()
-            if not isinstance(file_obj, FileObj):
+            elif not isinstance(file_obj, FileObj):
                 raise NTStatusAccessDenied()
 
         for entry_path in list(self._entries):
