@@ -54,7 +54,13 @@ def operation(fn):
 class BaseFileObj:
     @property
     def name(self):
+        """File name, without the path"""
         return self.path.name
+
+    @property
+    def file_name(self):
+        """File name, including the path"""
+        return str(self.path)
 
     def __init__(self, path, attributes, security_descriptor):
         self.path = path
@@ -81,7 +87,7 @@ class BaseFileObj:
         }
 
     def __repr__(self):
-        return f"{type(self).__name__}:{self.name}"
+        return f"{type(self).__name__}:{self.file_name}"
 
 
 class FileObj(BaseFileObj):
@@ -154,7 +160,7 @@ class OpenedObj:
         self.file_obj = file_obj
 
     def __repr__(self):
-        return f"{type(self).__name__}:{self.file_obj.name}"
+        return f"{type(self).__name__}:{self.file_obj.file_name}"
 
 
 class InMemoryFileSystemOperations(BaseFileSystemOperations):
