@@ -23,7 +23,8 @@ Winfspy consists of three important modules:
 
 - ``winfspy``: expose the WinFSP API
 - ``winfspy.memfs``: a memory file system based on winfspy
-- ``winfspy.tests.winfstest``: a test suite for black box testing
+- ``winfspy.tests.winfsp_tests``: a test suite for black box testing
+- ``winfspy.tests.winfstest``: a lighter test suite for black box testing
 
 
 Requirements and installation
@@ -68,8 +69,30 @@ Usage::
     $ python -m winfspy.memfs
 
 
+Winfsp-tests test suite
+-----------------------
+
+This test suite integrates the external test suite of
+`winfsp-tests <https://github.com/billziss-gh/winfsp/tree/master/tst/winfsp-tests>`_.
+
+Usage::
+
+    # Install winfspy with the test dependencies
+    $ pip install winfspy[test]
+
+    # Run the winfstest test suite on an existing X: drive
+    $ python winfspy.tests.winfsp_tests --file-system-path X:
+
+    # More information about pytest
+    $ python winfspy.tests.winfsp_tests -h
+
+
 Winfstest test suite
 --------------------
+
+This test suite is taken from
+`secfs.test.winfstest <https://bitbucket.org/billziss/secfs.test/>`_.
+It is basic yet useful to test common use cases.
 
 Usage::
 

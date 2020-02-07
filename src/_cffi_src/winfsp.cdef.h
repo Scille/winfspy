@@ -578,6 +578,9 @@ NTSTATUS FspFileSystemCanReplaceReparsePoint(
 BOOLEAN FspFileSystemAddStreamInfo(FSP_FSCTL_STREAM_INFO *StreamInfo,
     PVOID Buffer, ULONG Length, PULONG PBytesTransferred);
 
+
+FSP_FSCTL_OPEN_FILE_INFO *FspFileSystemGetOpenFileInfo(FSP_FSCTL_FILE_INFO *FileInfo);
+
 /*
  * Directory buffering
  */

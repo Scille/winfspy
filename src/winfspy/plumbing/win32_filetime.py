@@ -23,11 +23,13 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 """Tools to convert between Python datetime instances and Microsoft times.
 """
-from datetime import datetime, timedelta, tzinfo
-from calendar import timegm
+
 import time
+import ctypes
+from datetime import datetime, timezone
 
 
 # Win32 Epoch time is not the same as Unix Epoch time.
@@ -39,63 +41,68 @@ import time
 # http://support.microsoft.com/kb/167296
 # How To Convert a UNIX time_t to a Win32 FILETIME or SYSTEMTIME
 
-# this is the Win32 Epoch time for when Unix Epoch time started. It is in
-# hundreds of nanoseconds.
+# This is the Win32 Epoch time for when Unix Epoch time started.
+# It is in hundreds of nanoseconds.
 EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
 
-# This is the divider/multiplier for converting nanoseconds to
-# seconds and vice versa
-HUNDREDS_OF_NANOSECONDS = 10000000
+# Conversion factors (milliseconds and hundeds of nanoseconds)
+MILLISECONDS = 1000 * 1000
+MILLISEDCONDS_TO_HNS = 10
 
 
-ZERO = timedelta(0)
-HOUR = timedelta(hours=1)
-
-
-class UTC(tzinfo):
-    """UTC"""
-
-    def utcoffset(self, dt):
-        return ZERO
-
-    def tzname(self, dt):
-        return "UTC"
-
-    def dst(self, dt):
-        return ZERO
-
-
-utc = UTC()
+def time_ns():
+    # Use time.time_ns since time.time() is not as precise
+    try:
+        return time.time_ns()
+    # Python 3.6 compatibility: time.time_ns is not available
+    except AttributeError:
+        ctypes.pythonapi._PyTime_GetSystemClock.restype = ctypes.c_int64
+        return ctypes.pythonapi._PyTime_GetSystemClock()
 
 
 def dt_to_filetime(dt):
-    """Converts a datetime to Microsoft filetime format. If the object is
-    time zone-naive, it is forced to UTC before conversion.
+    """Converts a datetime to Microsoft filetime format.
+
+    If the object is time zone-naive, it is forced to UTC before conversion.
+    The resulting filetime is only precise to the milliseconds.
+
     >>> "%.0f" % dt_to_filetime(datetime(2009, 7, 25, 23, 0))
     '128930364000000000'
-    >>> dt_to_filetime(datetime(1970, 1, 1, 0, 0, tzinfo=utc))
-    116444736000000000L
+    >>> dt_to_filetime(datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc))
+    116444736000000000
     >>> dt_to_filetime(datetime(1970, 1, 1, 0, 0))
-    116444736000000000L
+    116444736000000000
+
+    >>> now = datetime.now(timezone.utc)
+    >>> assert filetime_to_dt(dt_to_filetime(now)) == now, now
     """
-    if (dt.tzinfo is None) or (dt.tzinfo.utcoffset(dt) is None):
-        dt = dt.replace(tzinfo=utc)
-    return EPOCH_AS_FILETIME + (timegm(dt.timetuple()) * HUNDREDS_OF_NANOSECONDS)
+    # If naive datetime, assume UTC
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    milliseconds = int(dt.timestamp() * MILLISECONDS)
+    return EPOCH_AS_FILETIME + MILLISEDCONDS_TO_HNS * milliseconds
 
 
 def filetime_to_dt(ft):
-    """Converts a Microsoft filetime number to a Python datetime. The new
-    datetime object is time zone-naive but is equivalent to tzinfo=utc.
+    """Converts a Microsoft filetime number to a Python datetime.
+
+    The resulting datetime is only precise to the milliseconds.
+    The hundreds of nanoseconds information is lost during the conversion.
+
     >>> filetime_to_dt(116444736000000000)
-    datetime.datetime(1970, 1, 1, 0, 0)
+    datetime.datetime(1970, 1, 1, 0, 0, tzinfo=datetime.timezone.utc)
     >>> filetime_to_dt(128930364000000000)
-    datetime.datetime(2009, 7, 25, 23, 0)
+    datetime.datetime(2009, 7, 25, 23, 0, tzinfo=datetime.timezone.utc)
+
+    >>> now = filetime_now() // 10 * 10  # Only precise to the usec
+    >>> assert dt_to_filetime(filetime_to_dt(now)) == now, now
     """
-    return datetime.utcfromtimestamp((ft - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+    milliseconds = (ft - EPOCH_AS_FILETIME) // MILLISEDCONDS_TO_HNS
+    return datetime.fromtimestamp(milliseconds / MILLISECONDS, timezone.utc,)
 
 
 def filetime_now():
-    return int(time.time() * HUNDREDS_OF_NANOSECONDS) + EPOCH_AS_FILETIME
+    return time_ns() // 100 + EPOCH_AS_FILETIME
 
 
 if __name__ == "__main__":
