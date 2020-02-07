@@ -51,10 +51,10 @@ build_script:
 
 test_script:
   # --doctest-modules: test win32_filetime module using doctest
-  # -k "not reparse_symlink": appveyor does not like those tests somehow
   # -vvv: very verbose, much convinience
   # --cov: produce coverage for codecov
-  - pytest --pyargs winfspy --doctest-modules -k "not reparse_symlink" -vvv --cov
+  # --log-level INFO: memfs produces useful INFO logs for debugging
+  - pytest --pyargs winfspy --doctest-modules -vvv --log-level INFO --cov
 
 after_test:
   - python setup.py bdist_wheel
