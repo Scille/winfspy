@@ -15,6 +15,9 @@ MEMFS_XFAIL_LIST = [
     # Reparse point are not supported at the moment
     "reparse_guid_test",
     "reparse_nfs_test",
+    # Require administrator priviledge
+    "reparse_symlink_test",
+    "reparse_symlink_relative_test",
 ]
 
 
