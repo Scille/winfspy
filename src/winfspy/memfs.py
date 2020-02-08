@@ -9,7 +9,7 @@ import logging
 import argparse
 import threading
 from functools import wraps
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 
 from winfspy import (
     FileSystem,
@@ -497,13 +497,18 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         pass
 
 
-def create_memory_file_system(
-    mountpoint, label="memfs", verbose=True, debug=False,
-):
+def create_memory_file_system(mountpoint, label="memfs", verbose=True, debug=False, testing=False):
     if debug:
         enable_debug_log()
+
     if verbose:
         logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    # The avast workaround is not necessary with drives
+    # Also, it is not compatible with winfsp-tests
+    mountpoint = Path(mountpoint)
+    is_drive = mountpoint.parent == mountpoint
+    reject_irp_prior_to_transact0 = not is_drive and not testing
 
     operations = InMemoryFileSystemOperations(label)
     fs = FileSystem(
@@ -523,6 +528,7 @@ def create_memory_file_system(
         file_system_name=str(mountpoint),
         prefix="",
         debug=debug,
+        reject_irp_prior_to_transact0=reject_irp_prior_to_transact0,
         # security_timeout_valid=1,
         # security_timeout=10000,
     )
