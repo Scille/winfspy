@@ -29,16 +29,19 @@ def get_available_drive():
     raise RuntimeError("No available drive found")
 
 
-@pytest.fixture
-def file_system_path(request):
+@pytest.fixture(params=["directory", "drive"])
+def file_system_path(request, tmp_path):
     path = request.config.getoption("--file-system-path")
-    if path:
-        yield path
+    if path and request.param == "drive":
+        pytest.skip()
         return
-    drive = get_available_drive()
-    fs = create_memory_file_system(drive, verbose=True)
+    if not path and request.param == "drive":
+        path = get_available_drive()
+    if not path and request.param == "directory":
+        path = tmp_path / "mountpoint"
+    fs = create_memory_file_system(path, testing=True)
     fs.start()
-    yield drive
+    yield path
     fs.stop()
 
 
