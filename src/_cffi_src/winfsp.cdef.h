@@ -282,8 +282,13 @@ typedef struct {
     // UINT32 UmFileContextIsUserContext2:1;   /* user mode: FileContext parameter is UserContext2 */
     // UINT32 UmFileContextIsFullContext:1;    /* user mode: FileContext parameter is FullContext */
     // UINT32 UmReservedFlags:6;
-    // /* additional kernel-mode flags */
-    // UINT32 KmReservedFlags:8;
+    // /* additional kernel-mode flags */\
+    // UINT32 AllowOpenInKernelMode:1;         /* allow kernel mode to open files when possible */\
+    // UINT32 CasePreservedExtendedAttributes:1;   /* preserve case of EA (default is UPPERCASE) */\
+    // UINT32 WslFeatures:1;                   /* support features required for WSLinux */\
+    // UINT32 DirectoryMarkerAsNextOffset:1;   /* directory marker is next offset instead of last name */\
+    // UINT32 RejectIrpPriorToTransact0:1;     /* reject IRP's prior to FspFsctlTransact with 0 buffers */\
+    // UINT32 KmReservedFlags:3;
     WCHAR Prefix[]; /* UNC prefix (ServerShare) */
     WCHAR FileSystemName[];
 
