@@ -20,6 +20,13 @@ MEMFS_XFAIL_LIST = [
     "reparse_symlink_relative_test",
 ]
 
+MEMFS_AS_DIR_XFAIL_LIST = [
+    "create_test",
+    "getfileinfo_test",
+    "getfileinfo_name_test",
+    "getvolinfo_test",
+]
+
 
 def get_winfsp_tests_env():
     env = dict(os.environ)
@@ -49,11 +56,17 @@ def file_system_tempdir(file_system_path):
 
 
 @pytest.mark.parametrize("test_case", TEST_CASES)
-def test_winfsp_tests(test_case, file_system_tempdir, enable_stream_tests, memfs_tests):
+def test_winfsp_tests(test_case, file_system_tempdir, enable_stream_tests, memfs_tests, as_drive):
     if test_case.startswith("stream_") and not enable_stream_tests:
         pytest.skip()
 
-    if memfs_tests and (test_case in MEMFS_XFAIL_LIST or test_case.startswith("stream_")):
+    if memfs_tests and test_case in MEMFS_XFAIL_LIST:
+        pytest.xfail()
+
+    if memfs_tests and test_case.startswith("stream_"):
+        pytest.xfail()
+
+    if memfs_tests and not as_drive and test_case in MEMFS_AS_DIR_XFAIL_LIST:
         pytest.xfail()
 
     result = subprocess.run(

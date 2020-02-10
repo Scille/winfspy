@@ -3,6 +3,7 @@ from winfspy.tests.fixtures import (
     file_system_path,
     enable_stream_tests,
     memfs_tests,
+    as_drive,
 )
 
-__all__ = ["pytest_addoption", "file_system_path", "enable_stream_tests", "memfs_tests"]
+__all__ = ["pytest_addoption", "file_system_path", "enable_stream_tests", "memfs_tests", "as_drive"]

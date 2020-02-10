@@ -29,16 +29,25 @@ def get_available_drive():
     raise RuntimeError("No available drive found")
 
 
-@pytest.fixture(params=["directory", "drive"])
-def file_system_path(request, tmp_path):
+@pytest.fixture(params=["as_drive", "as_directory"])
+def as_drive(request):
+    return request.param == "as_drive"
+
+
+@pytest.fixture()
+def file_system_path(request, tmp_path, as_drive):
     path = request.config.getoption("--file-system-path")
-    if path and request.param == "drive":
+    # Skip one as_drive parameter if file system path is provided
+    if path and as_drive:
         pytest.skip()
+
+    # Run with provided file system path
+    if path:
+        yield path
         return
-    if not path and request.param == "drive":
-        path = get_available_drive()
-    if not path and request.param == "directory":
-        path = tmp_path / "mountpoint"
+
+    # Run a winfspy.memfs file system
+    path = get_available_drive() if as_drive else tmp_path / "mountpoint"
     fs = create_memory_file_system(path, testing=True)
     fs.start()
     yield path
