@@ -111,6 +111,11 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
     UINT32 um_file_context_is_user_context2,
     UINT32 um_file_context_is_full_context,
     UINT32 um_reserved_flags,
+    UINT32 allow_open_in_kernel_mode,
+    UINT32 case_preserved_extended_attributes,
+    UINT32 wsl_features,
+    UINT32 directory_marker_as_next_offset,
+    UINT32 reject_irp_prior_to_transact0,
     UINT32 km_reserved_flags,
     WCHAR *prefix,
     WCHAR *file_system_name,
@@ -153,6 +158,12 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
     VolumeParams->UmFileContextIsUserContext2 = um_file_context_is_user_context2;
     VolumeParams->UmFileContextIsFullContext = um_file_context_is_full_context;
     VolumeParams->UmReservedFlags = um_reserved_flags;
+
+    VolumeParams->AllowOpenInKernelMode = allow_open_in_kernel_mode;
+    VolumeParams->CasePreservedExtendedAttributes = case_preserved_extended_attributes;
+    VolumeParams->WslFeatures = wsl_features;
+    VolumeParams->DirectoryMarkerAsNextOffset = directory_marker_as_next_offset;
+    VolumeParams->RejectIrpPriorToTransact0 = reject_irp_prior_to_transact0;
     VolumeParams->KmReservedFlags = km_reserved_flags;
 
     StringCbCopyW(VolumeParams->Prefix, FSP_FSCTL_VOLUME_PREFIX_SIZE / sizeof(WCHAR), prefix);
@@ -246,6 +257,11 @@ void configure_FSP_FSCTL_VOLUME_PARAMS(
     UINT32 um_file_context_is_user_context2,
     UINT32 um_file_context_is_full_context,
     UINT32 um_reserved_flags,
+    UINT32 allow_open_in_kernel_mode,
+    UINT32 case_preserved_extended_attributes,
+    UINT32 wsl_features,
+    UINT32 directory_marker_as_next_offset,
+    UINT32 reject_irp_prior_to_transact0,
     UINT32 km_reserved_flags,
     WCHAR * prefix,
     WCHAR * file_system_name,
