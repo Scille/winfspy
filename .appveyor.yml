@@ -16,7 +16,7 @@ environment:
     - PYTHON: C:\Python38-x64
       RELEASE_ONLY_TARGET: false
   PYPI_PASSWORD:
-    secure: UekbvbY3VJX53NJLchbcY+5ZfdoQQ8LwAIR+9SlacvjWGlayfn1+WF9TtIy0koc8
+    secure: PeE1WKyuhPeZOSu7Xq7vsJiikQbMOBzsONMpxr2fbBaIVgCq0k0HRUaR0mmzJtYJcazB3NImA603frwc2FQwaVQj8U8teGUtvjWi3/LhWF7ePXJz38sb7n80I14UuRADOJi/1Aybp0AdiEvkxBYgOWyKF/e5jf7cNvpW543KRwC+kQA892mWWgyJ61D9RgDWZaelyc7xDsyxKJNT4dhIIN/lQ10EG4Tl8JQSD3oMxgvQM/1rZzC5Z6EHHEPXbGyfVA5wBQ7tnCQPZdTSPvjZkA==
 
 for:
   -
@@ -69,7 +69,7 @@ deploy_script:
   - echo index-servers =                             >> %USERPROFILE%\\.pypirc
   - echo     pypi                                    >> %USERPROFILE%\\.pypirc
   - echo [pypi]                                      >> %USERPROFILE%\\.pypirc
-  - echo username=touilleMan                         >> %USERPROFILE%\\.pypirc
+  - echo username=__token__                          >> %USERPROFILE%\\.pypirc
   - echo password=%PYPI_PASSWORD%                    >> %USERPROFILE%\\.pypirc
   # upload to pypi for windows
   - set PATH=%BK_PATH%
