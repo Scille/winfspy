@@ -1,18 +1,15 @@
 import os
-import winreg as reg
+import sys
+import winreg
+import pathlib
 
 
-def reg32_get_value(rootkey, keyname, valname):
-    key, val = None, None
+def winreg_get_value(rootkey, keyname, valname):
     try:
-        key = reg.OpenKey(rootkey, keyname, 0, reg.KEY_READ | reg.KEY_WOW64_32KEY)
-        val = str(reg.QueryValueEx(key, valname)[0])
+        with winreg.OpenKey(rootkey, keyname, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY) as key:
+            return str(winreg.QueryValueEx(key, valname)[0])
     except WindowsError:
-        pass
-    finally:
-        if key is not None:
-            reg.CloseKey(key)
-    return val
+        return None
 
 
 def get_winfsp_dir(suffix=None):
@@ -28,15 +25,18 @@ def get_winfsp_dir(suffix=None):
     - the windows registry: `HKEY_LOCAL_MACHINE\\SOFTWARE\\WinFsp\\InstallDir`
     """
     path = os.environ.get("WINFSP_LIBRARY_PATH")
+
     if not path:
-        path = reg32_get_value(reg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir")
-    else:
-        raise RuntimeError("Cannot find WinFsp library, is it installed ?")
+        path = winreg_get_value(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir")
 
-    if path and suffix:
-        path = os.path.join(path, suffix)
+    if not path:
+        raise RuntimeError("The WinFsp library path is not provided")
 
-    return path
+    path = pathlib.Path(path)
+    if not path.exists():
+        raise RuntimeError(f"The provided WinFsp library path does not exist: {path}")
+
+    return path / suffix if suffix else path
 
 
 def get_winfsp_bin_dir():
@@ -47,4 +47,19 @@ def get_winfsp_bin_dir():
     - the `bin` directory in the base directory provided by `get_winfsp_dir``
     """
     path = os.environ.get("WINFSP_DEBUG_PATH")
-    return path if path else get_winfsp_dir(suffix="bin")
+    if path:
+        path = pathlib.Path(path)
+    else:
+        path = get_winfsp_dir(suffix="bin")
+
+    if not path.exists():
+        raise RuntimeError(f"The provided WinFsp binary path does not exist: {path}")
+
+    return path
+
+
+def get_winfsp_library_name():
+    # See:
+    # https://docs.python.org/3/library/platform.html#platform.architecture
+    is_64bits = sys.maxsize > 2 ** 32
+    return "winfsp-" + ("x64" if is_64bits else "x86")
