@@ -1,7 +1,8 @@
 import os
 import sys
+from ctypes.util import find_library
 
-from .get_winfsp_dir import get_winfsp_bin_dir
+from .get_winfsp_dir import get_winfsp_bin_dir, get_winfsp_library_name
 
 # WinFSP's DLL is not available system-wide, so we have to first retrieve it
 # (using either user-provided environ variable or the infamous windows
@@ -11,12 +12,21 @@ from .get_winfsp_dir import get_winfsp_bin_dir
 # to the old way of adding a dll directory: customize the PATH environ
 # variable.
 
-if sys.version_info >= (3, 8):
-    os.add_dll_directory(get_winfsp_bin_dir())
-else:
-    os.environ["PATH"] = f"{get_winfsp_bin_dir()};{os.environ.get('PATH')}"
+BIN_DIR = get_winfsp_bin_dir()
 
-from ._bindings import ffi, lib  # noqa
+if sys.version_info >= (3, 8):
+    os.add_dll_directory(BIN_DIR)
+else:
+    os.environ["PATH"] = f"{BIN_DIR};{os.environ.get('PATH')}"
+
+
+if not find_library(get_winfsp_library_name()):
+    raise RuntimeError(f"The WinFsp DLL could not be found in {BIN_DIR}")
+
+try:
+    from ._bindings import ffi, lib  # noqa
+except Exception as exc:
+    raise RuntimeError(f"The winfsp binding could not be imported\n{exc}")
 
 
 def enable_debug_log():
