@@ -3,12 +3,16 @@ import re
 from cffi import FFI
 
 
+# Load the `get_winfsp_dir` module as it contains useful logic
 BASEDIR = os.path.dirname(os.path.abspath(__file__))
+MODULE_FILENAME = f"{BASEDIR}/../winfspy/plumbing/get_winfsp_dir.py"
+MODULE_CONTENTS = open(MODULE_FILENAME).read()
+MODULE_GLOBALS = {}
+exec(MODULE_CONTENTS, MODULE_GLOBALS)
 
-# import `get_winfsp_dir` the violent way given winfspy cannot be loaded yet
-exec(open(f"{BASEDIR}/../winfspy/plumbing/get_winfsp_dir.py").read())
-WINFSP_DIR = get_winfsp_dir()  # noqa
-WINFSP_LIB = get_winfsp_library_name()  # noqa
+# Get the WinFsp directory and library name
+WINFSP_DIR = MODULE_GLOBALS["get_winfsp_dir"]()
+WINFSP_LIB = MODULE_GLOBALS["get_winfsp_library_name"]()
 
 
 def strip_by_shaif(src):

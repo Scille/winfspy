@@ -12,16 +12,15 @@ from .get_winfsp_dir import get_winfsp_bin_dir, get_winfsp_library_name
 # to the old way of adding a dll directory: customize the PATH environ
 # variable.
 
-BIN_DIR = get_winfsp_bin_dir()
+WINFSP_BIN_DIR = get_winfsp_bin_dir()
 
+# Modifiy %PATH% in any case as it is used by `ctypes.util.find_library`
+os.environ["PATH"] = f"{WINFSP_BIN_DIR};{os.environ.get('PATH')}"
 if sys.version_info >= (3, 8):
-    os.add_dll_directory(BIN_DIR)
-else:
-    os.environ["PATH"] = f"{BIN_DIR};{os.environ.get('PATH')}"
-
+    os.add_dll_directory(WINFSP_BIN_DIR)
 
 if not find_library(get_winfsp_library_name()):
-    raise RuntimeError(f"The WinFsp DLL could not be found in {BIN_DIR}")
+    raise RuntimeError(f"The WinFsp DLL could not be found in {WINFSP_BIN_DIR}")
 
 try:
     from ._bindings import ffi, lib  # noqa
