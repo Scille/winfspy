@@ -110,31 +110,41 @@ class FileSystem:
         if not isinstance(operations, BaseFileSystemOperations):
             raise ValueError(f"`operations` must be a `BaseFileSystemOperations` instance.")
 
+        self.debug = debug
+        self.volume_params = volume_params
         self.mountpoint = mountpoint
         self.operations = operations
+        self._apply_volume_params()
+        self._create_file_system()
 
+    def _apply_volume_params(self):
         # The `pass_query_directory_pattern` mode is not supported at the moment
-        if volume_params.get("pass_query_directory_pattern", False):
+        if self.volume_params.get("pass_query_directory_pattern", False):
             raise ValueError(
                 "The `pass_query_directory_pattern` mode is not supported at the moment"
             )
 
         # Enable `pass_query_directory_file_name` by default if `get_dir_info_by_name` is available
         get_dir_info_by_name_available = (
-            type(operations).get_dir_info_by_name
+            type(self.operations).get_dir_info_by_name
             is not BaseFileSystemOperations.get_dir_info_by_name
         )
-        if get_dir_info_by_name_available and "pass_query_directory_file_name" not in volume_params:
-            volume_params["pass_query_directory_file_name"] = True
+        if (
+            get_dir_info_by_name_available
+            and "pass_query_directory_file_name" not in self.volume_params
+        ):
+            self.volume_params["pass_query_directory_file_name"] = True
 
-        self._volume_params = _volume_params_factory(**volume_params)
+        self._volume_params = _volume_params_factory(**self.volume_params)
         set_delete_available = (
-            type(operations).set_delete is not BaseFileSystemOperations.set_delete
+            type(self.operations).set_delete is not BaseFileSystemOperations.set_delete
         )
         self._file_system_interface = file_system_interface_trampoline_factory(
             set_delete_available=set_delete_available
         )
         self._file_system_ptr = ffi.new("FSP_FILE_SYSTEM**")
+
+    def _create_file_system(self):
         result = lib.FspFileSystemCreate(
             lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME,
             self._volume_params,
@@ -145,10 +155,10 @@ class FileSystem:
             raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
 
         # Avoid GC on the handle
-        self._operations_handle = ffi.new_handle(operations)
+        self._operations_handle = ffi.new_handle(self.operations)
         self._file_system_ptr[0].UserContext = self._operations_handle
 
-        if debug:
+        if self.debug:
             lib.FspFileSystemSetDebugLogF(self._file_system_ptr[0], 0xFFFFFFFF)
 
     def start(self):
@@ -162,6 +172,13 @@ class FileSystem:
         result = lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
         if not nt_success(result):
             raise WinFSPyError(f"Cannot start file system dispatcher: {cook_ntstatus(result).name}")
+
+    def restart(self, **volume_params):
+        self.stop()
+        self.volume_params.update(volume_params)
+        self._apply_volume_params()
+        self._create_file_system()
+        self.start()
 
     def stop(self):
         if not self.started:
