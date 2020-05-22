@@ -189,18 +189,16 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self._entries = {self._root_path: self._root_obj}
         self._thread_lock = threading.Lock()
 
-        # For debugging purposes
-        # self._add_file("C:\\Users\\User\\Downloads\\sample.pdf")
-        # self._add_dir("abcdef")
+    # Debugging helpers
 
-    def _add_dir(self, path):
+    def _create_directory(self, path):
         path = self._root_path / path
         obj = FolderObj(
             path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY, self._root_obj.security_descriptor,
         )
         self._entries[path] = obj
 
-    def _add_file(self, file_path):
+    def _import_files(self, file_path):
         file_path = Path(file_path)
         path = self._root_path / file_path.name
         obj = FileObj(
@@ -208,6 +206,8 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         )
         self._entries[path] = obj
         obj.write(file_path.read_bytes(), 0, False)
+
+    # Winfsp operations
 
     @operation
     def get_volume_info(self):
