@@ -41,3 +41,7 @@ class NTStatusEndOfFile(NTStatusError):
 
 class NTStatusDirectoryNotEmpty(NTStatusError):
     value = NTSTATUS.STATUS_DIRECTORY_NOT_EMPTY
+
+
+class NTStatusMediaWriteProtected(NTStatusError):
+    value = NTSTATUS.STATUS_MEDIA_WRITE_PROTECTED

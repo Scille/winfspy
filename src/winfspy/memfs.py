@@ -4,7 +4,6 @@ Useful for testing and as a reference.
 """
 
 import sys
-import time
 import logging
 import argparse
 import threading
@@ -23,6 +22,7 @@ from winfspy import (
     NTStatusObjectNameCollision,
     NTStatusAccessDenied,
     NTStatusEndOfFile,
+    NTStatusMediaWriteProtected,
 )
 from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
 
@@ -164,7 +164,7 @@ class OpenedObj:
 
 
 class InMemoryFileSystemOperations(BaseFileSystemOperations):
-    def __init__(self, volume_label):
+    def __init__(self, volume_label, read_only=False):
         super().__init__()
         if len(volume_label) > 31:
             raise ValueError("`volume_label` must be 31 characters long max")
@@ -179,6 +179,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
             "volume_label": volume_label,
         }
 
+        self.read_only = read_only
         self._root_path = PureWindowsPath("/")
         self._root_obj = FolderObj(
             self._root_path,
@@ -187,6 +188,26 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         )
         self._entries = {self._root_path: self._root_obj}
         self._thread_lock = threading.Lock()
+
+    # Debugging helpers
+
+    def _create_directory(self, path):
+        path = self._root_path / path
+        obj = FolderObj(
+            path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY, self._root_obj.security_descriptor,
+        )
+        self._entries[path] = obj
+
+    def _import_files(self, file_path):
+        file_path = Path(file_path)
+        path = self._root_path / file_path.name
+        obj = FileObj(
+            path, FILE_ATTRIBUTE.FILE_ATTRIBUTE_ARCHIVE, self._root_obj.security_descriptor,
+        )
+        self._entries[path] = obj
+        obj.write(file_path.read_bytes(), 0, False)
+
+    # Winfsp operations
 
     @operation
     def get_volume_info(self):
@@ -222,6 +243,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         security_descriptor,
         allocation_size,
     ):
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         file_name = PureWindowsPath(file_name)
 
         # `granted_access` is already handle by winfsp
@@ -256,6 +280,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def set_security(self, file_context, security_information, modification_descriptor):
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         new_descriptor = file_context.file_obj.security_descriptor.evolve(
             security_information, modification_descriptor
         )
@@ -263,6 +290,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def rename(self, file_context, file_name, new_file_name, replace_if_exists):
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         file_name = PureWindowsPath(file_name)
         new_file_name = PureWindowsPath(new_file_name)
 
@@ -325,6 +355,8 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         change_time,
         file_info,
     ) -> dict:
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
 
         file_obj = file_context.file_obj
         if file_attributes != FILE_ATTRIBUTE.INVALID_FILE_ATTRIBUTES:
@@ -342,6 +374,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def set_file_size(self, file_context, new_size, set_allocation_size):
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         if set_allocation_size:
             file_context.file_obj.set_allocation_size(new_size)
         else:
@@ -421,6 +456,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def write(self, file_context, buffer, offset, write_to_end_of_file, constrained_io):
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         if constrained_io:
             return file_context.file_obj.constrained_write(buffer, offset)
         else:
@@ -428,6 +466,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def cleanup(self, file_context, file_name, flags) -> None:
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         # TODO: expose FspCleanupDelete & friends
         FspCleanupDelete = 0x01
         FspCleanupSetAllocationSize = 0x02
@@ -474,6 +515,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
     def overwrite(
         self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
     ) -> None:
+        if self.read_only:
+            raise NTStatusMediaWriteProtected()
+
         file_obj = file_context.file_obj
 
         # File attributes
@@ -542,7 +586,15 @@ def main(mountpoint, label, verbose, debug):
         fs.start()
         print("FS started, keep it running forever")
         while True:
-            time.sleep(1)
+            result = input("Set read-only flag (y/n/q)? ").lower()
+            if result == "y":
+                fs.operations.read_only = True
+                fs.restart(read_only_volume=True)
+            elif result == "n":
+                fs.operations.read_only = False
+                fs.restart(read_only_volume=False)
+            elif result == "q":
+                break
 
     finally:
         print("Stopping FS")
