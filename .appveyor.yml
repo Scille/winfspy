@@ -27,7 +27,7 @@ for:
     skip_non_tags: true
 
 install:
-  - choco install winfsp -y --pre --version=1.7.20038-pre
+  - choco install winfsp -y --version=1.7.20172
   - git --no-pager log -n2
   - echo %APPVEYOR_REPO_COMMIT%
   - SET PATH=%PYTHON%;%PYTHON%\Scripts;;%PATH%
@@ -35,7 +35,7 @@ install:
   - python -c "import struct; print(struct.calcsize('P') * 8)"
   - python -m pip install --upgrade pip
   - pip install -r requirements-dev.txt
-  - appveyor DownloadFile https://github.com/billziss-gh/winfsp/releases/download/v1.5/winfsp-tests-1.5.20002.zip -FileName %PYTHON%\Scripts\winfsp-tests.zip
+  - appveyor DownloadFile https://github.com/billziss-gh/winfsp/releases/download/v1.7/winfsp-tests-1.7.20172.zip -FileName %PYTHON%\Scripts\winfsp-tests.zip
   - 7z x %PYTHON%\Scripts\winfsp-tests.zip -o%PYTHON%\Scripts\
 
 before_build:
