@@ -1,6 +1,7 @@
 from typing import NamedTuple, Any
 
-from .status import cook_ntstatus
+from .status import NTSTATUS, cook_ntstatus
+from .exceptions import NTStatusError
 
 # Security descriptor conversion
 # see https://docs.microsoft.com/en-us/windows/desktop/api/sddl/nf-sddl-convertstringsecuritydescriptortosecuritydescriptorw
@@ -41,9 +42,11 @@ class SecurityDescriptor(NamedTuple):
 
     def evolve(self, security_information, modification_descriptor):
         psd = ffi.new("SECURITY_DESCRIPTOR**")
-        lib.FspSetSecurityDescriptor(
+        status = lib.FspSetSecurityDescriptor(
             self.handle, security_information, modification_descriptor, psd
         )
+        if status != NTSTATUS.STATUS_SUCCESS:
+            raise NTStatusError(status)
         handle = psd[0]
         size = lib.GetSecurityDescriptorLength(handle)
         return type(self)(handle, size)
