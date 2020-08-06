@@ -24,7 +24,8 @@ from winfspy import (
     NTStatusEndOfFile,
     NTStatusMediaWriteProtected,
 )
-from winfspy.plumbing.winstuff import filetime_now, SecurityDescriptor
+from winfspy.plumbing.win32_filetime import filetime_now
+from winfspy.plumbing.security_descriptor import SecurityDescriptor
 
 
 def operation(fn):

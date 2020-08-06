@@ -6,7 +6,7 @@ import subprocess
 import pytest
 import pathlib
 
-from winfspy.plumbing.get_winfsp_dir import get_winfsp_bin_dir
+from winfspy.plumbing import get_winfsp_bin_dir
 from . import WINFSP_TESTS_EXECUTABLE
 
 MEMFS_XFAIL_LIST = [

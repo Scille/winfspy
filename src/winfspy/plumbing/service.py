@@ -2,7 +2,7 @@ from contextlib import contextmanager
 import threading
 
 from .bindings import ffi, lib
-from .winstuff import NTSTATUS
+from .status import NTSTATUS
 
 
 # TODO: finish this...
