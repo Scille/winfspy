@@ -1,9 +1,8 @@
 from ._version import __version__
-from .plumbing.bindings import enable_debug_log
-from .plumbing.winstuff import FILE_ATTRIBUTE, CREATE_FILE_CREATE_OPTIONS
+from .plumbing import enable_debug_log, FILE_ATTRIBUTE, CREATE_FILE_CREATE_OPTIONS
 from .file_system import FileSystem
 from .operations import BaseFileSystemOperations, BaseFileContext
-from .exceptions import (
+from .plumbing.exceptions import (
     WinFSPyError,
     FileSystemAlreadyStarted,
     FileSystemNotStarted,

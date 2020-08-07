@@ -2,7 +2,7 @@ import os
 import sys
 import subprocess
 
-from winfspy.plumbing.get_winfsp_dir import get_winfsp_dir, get_winfsp_library_name
+from winfspy.plumbing import get_winfsp_dir, get_winfsp_library_name
 
 
 def run_import_winfspy(env):

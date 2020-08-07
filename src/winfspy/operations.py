@@ -4,9 +4,8 @@ import threading
 from typing import List
 from functools import wraps
 
-from .plumbing.winstuff import NTSTATUS, SecurityDescriptor
-from .plumbing.bindings import lib, ffi
-from .exceptions import NTStatusError
+from .plumbing import NTSTATUS, SecurityDescriptor, lib, ffi
+from .plumbing import NTStatusError
 
 
 logger = logging.getLogger("winfspy")

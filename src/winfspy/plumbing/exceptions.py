@@ -1,4 +1,4 @@
-from .plumbing.winstuff import NTSTATUS
+from .status import NTSTATUS
 
 
 class WinFSPyError(Exception):

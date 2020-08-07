@@ -1,20 +1,8 @@
 import enum
-from typing import NamedTuple, Any
 
-from .win32_filetime import dt_to_filetime, filetime_to_dt, filetime_now
-
-# Security descriptor conversion
-# see https://docs.microsoft.com/en-us/windows/desktop/api/sddl/nf-sddl-convertstringsecuritydescriptortosecuritydescriptorw
-from .bindings import ffi, lib
-
+from .bindings import lib
 
 __all__ = (
-    "dt_to_filetime",
-    "filetime_to_dt",
-    "filetime_now",
-    "SecurityDescriptor",
-    "FILE_ATTRIBUTE",
-    "CREATE_FILE_CREATE_OPTIONS",
     "NTSTATUS",
     "nt_success",
     "nt_information",
@@ -24,51 +12,6 @@ __all__ = (
     "posix_to_ntstatus",
     "ntstatus_to_posix",
 )
-
-
-class SecurityDescriptor(NamedTuple):
-
-    handle: Any
-    size: int
-
-    @classmethod
-    def from_cpointer(cls, handle):
-        if handle == ffi.NULL:
-            return cls(ffi.NULL, 0)
-        size = lib.GetSecurityDescriptorLength(handle)
-        pointer = lib.malloc(size)
-        new_handle = ffi.cast("SECURITY_DESCRIPTOR*", pointer)
-        ffi.memmove(new_handle, handle, size)
-        return cls(new_handle, size)
-
-    @classmethod
-    def from_string(cls, string_format):
-        # see https://docs.microsoft.com/fr-fr/windows/desktop/SecAuthZ/security-descriptor-string-format
-        psd = ffi.new("SECURITY_DESCRIPTOR**")
-        psd_size = ffi.new("ULONG*")
-        if not lib.ConvertStringSecurityDescriptorToSecurityDescriptorW(
-            string_format, lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION, psd, psd_size
-        ):
-            raise RuntimeError(
-                f"Cannot create security descriptor `{string_format}`: "
-                f"{cook_ntstatus(lib.GetLastError())}"
-            )
-        return cls(psd[0], psd_size[0])
-
-    def evolve(self, security_information, modification_descriptor):
-        psd = ffi.new("SECURITY_DESCRIPTOR**")
-        lib.FspSetSecurityDescriptor(
-            self.handle, security_information, modification_descriptor, psd
-        )
-        handle = psd[0]
-        size = lib.GetSecurityDescriptorLength(handle)
-        return type(self)(handle, size)
-
-    def is_valid(self):
-        return bool(lib.IsValidSecurityDescriptor(self.handle))
-
-    def __del__(self):
-        lib.LocalFree(self.handle)
 
 
 class FILE_ATTRIBUTE(enum.IntEnum):
