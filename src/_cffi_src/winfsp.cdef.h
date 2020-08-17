@@ -4,14 +4,11 @@
 
 typedef ULONG NTSTATUS;
 typedef NTSTATUS* PNTSTATUS;
+typedef unsigned long SECURITY_INFORMATION;
 
 
 DWORD GetLastError(void);
 
-
-typedef struct {
-    ...;
-} SECURITY_INFORMATION;
 
 typedef struct {
     ...;
@@ -176,6 +173,15 @@ BOOL ConvertStringSecurityDescriptorToSecurityDescriptorW(
   DWORD                StringSDRevision,
   PSECURITY_DESCRIPTOR *SecurityDescriptor,
   PULONG               SecurityDescriptorSize
+);
+
+
+BOOL ConvertSecurityDescriptorToStringSecurityDescriptorW(
+  PSECURITY_DESCRIPTOR SecurityDescriptor,
+  DWORD                RequestedStringSDRevision,
+  SECURITY_INFORMATION SecurityInformation,
+  LPWSTR               *StringSecurityDescriptor,
+  PULONG               StringSecurityDescriptorLen
 );
 
 
