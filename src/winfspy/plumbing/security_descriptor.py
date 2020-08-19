@@ -40,6 +40,25 @@ class SecurityDescriptor(NamedTuple):
             )
         return cls(psd[0], psd_size[0])
 
+    def to_string(self):
+        pwstr = ffi.new("PWSTR*")
+        flags = (
+            lib.WFSPY_OWNER_SECURITY_INFORMATION
+            | lib.WFSPY_GROUP_SECURITY_INFORMATION
+            | lib.WFSPY_DACL_SECURITY_INFORMATION
+            | lib.WFSPY_SACL_SECURITY_INFORMATION
+        )
+        if not lib.ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            self.handle, lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION, flags, pwstr, ffi.NULL
+        ):
+            raise RuntimeError(
+                f"Cannot convert the given security descriptor to string: "
+                f"{cook_ntstatus(lib.GetLastError())}"
+            )
+        result = ffi.string(pwstr[0])
+        lib.LocalFree(pwstr[0])
+        return result
+
     def evolve(self, security_information, modification_descriptor):
         psd = ffi.new("SECURITY_DESCRIPTOR**")
         status = lib.FspSetSecurityDescriptor(
