@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  Quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: pre-commit/action@v2.0.0
+
+  Build:
+    name: Build wheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
+
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python_version: [cp36, cp37, cp38]
+        architecture: [win32, win_amd64]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install winfsp
+        run: choco install winfsp -y --version=1.8.20304
+
+      - name: Download winfsp-tests-x86
+        uses: engineerd/configurator@v0.0.6
+        with:
+          name: winfsp-tests-x86.exe
+          url: https://github.com/billziss-gh/winfsp/releases/download/v1.8/winfsp-tests-1.8.20304.zip
+          pathInArchive: winfsp-tests-x86.exe
+
+      - name: Run cibuildwheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
+        uses: joerick/cibuildwheel@v1.10.0
+        env:
+          CIBW_BUILD: ${{ matrix.python_version }}-${{ matrix.architecture }}
+          CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov={project}/src/winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
+          CIBW_BEFORE_TEST: pip install -r requirements-test.txt
+
+      - name: Upload coverage report on codecov
+        uses: codecov/codecov-action@v1
+        env:
+          PYTHON_VERSION: ${{ matrix.architecture }}
+          ARCHITECTURE: ${{ matrix.python_version }}
+        with:
+          env_vars: PYTHON_VERSION, ARCHITECTURE
+
+      - name: Upload wheel as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  Release:
+    runs-on: windows-latest
+    needs: [Quality, Build]
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Build source distribution
+        run: python setup.py sdist
+
+      - name: Download wheels
+        uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - name: Publish on PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}

@@ -42,6 +42,7 @@ setup(
     install_requires=requirements,
     setup_requires=requirements,
     extras_require=extra_requirements,
+    tests_require=extra_requirements["tests"],
     cffi_modules=["./src/_cffi_src/build_bindings.py:ffibuilder"],
     # for cffi and test case .t files
     zip_safe=False,
