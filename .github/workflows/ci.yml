@@ -40,7 +40,7 @@ jobs:
         uses: joerick/cibuildwheel@v1.10.0
         env:
           CIBW_BUILD: ${{ matrix.python_version }}-${{ matrix.architecture }}
-          CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov={project}/src/winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
+          CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov=winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
           CIBW_BEFORE_TEST: pip install -r requirements-test.txt
 
       - name: Upload coverage report on codecov
