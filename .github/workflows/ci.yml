@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v2
       - uses: pre-commit/action@v2.0.0
 
-  Build:
+  Wheels:
     name: Build wheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
 
     runs-on: windows-latest
@@ -56,14 +56,16 @@ jobs:
         with:
           path: ./wheelhouse/*.whl
 
-  Release:
+  Source:
+    name: Build source distribution
     runs-on: windows-latest
-    needs: [Quality, Build]
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Install winfsp
+        run: choco install winfsp -y --version=1.8.20304
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -73,7 +75,18 @@ jobs:
       - name: Build source distribution
         run: python setup.py sdist
 
-      - name: Download wheels
+      - name: Upload wheel as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          path: ./dist/*.tar.gz
+
+  Release:
+    runs-on: windows-latest
+    needs: [Quality, Wheels, Source]
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download wheels and source distribution
         uses: actions/download-artifact@v2
         with:
           name: artifact
