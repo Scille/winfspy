@@ -81,7 +81,7 @@ jobs:
           path: ./dist/*.tar.gz
 
   Release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     needs: [Quality, Wheels, Source]
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
 
