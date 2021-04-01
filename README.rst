@@ -2,9 +2,9 @@
 WinFSPy
 ===============================
 
-.. image:: https://ci.appveyor.com/api/projects/status/jg07bt75a9r78ou4/branch/master?svg=true
-        :target: https://ci.appveyor.com/project/touilleMan/winfspy/branch/master
-        :alt: Appveyor CI Status
+.. image:: https://github.com/scille/winfspy/actions/workflows/ci.yml/badge.svg
+        :target: https://github.com/scille/winfspy/actions/workflows/ci.yml
+        :alt: GitHub Actions Status
 
 .. image:: https://codecov.io/gh/Scille/winfspy/branch/master/graph/badge.svg
   :target: https://codecov.io/gh/Scille/winfspy
