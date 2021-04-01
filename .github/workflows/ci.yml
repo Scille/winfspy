@@ -14,7 +14,7 @@ jobs:
       - uses: pre-commit/action@v2.0.0
 
   Wheels:
-    name: Build wheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
+    name: Wheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
 
     runs-on: windows-latest
     strategy:
@@ -57,7 +57,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   Source:
-    name: Build source distribution
+    name: Source distribution
     runs-on: windows-latest
 
     steps:
