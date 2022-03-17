@@ -143,11 +143,14 @@ class FileSystem:
         self._file_system_ptr = ffi.new("FSP_FILE_SYSTEM**")
 
     def _create_file_system(self):
+        # Network drive if prefix is provided
+        if self.volume_params.get("prefix"):
+            device_path = lib.WFSPY_FSP_FSCTL_NET_DEVICE_NAME
+        else:
+            device_path = lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME
+
         result = lib.FspFileSystemCreate(
-            lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME,
-            self._volume_params,
-            self._file_system_interface,
-            self._file_system_ptr,
+            device_path, self._volume_params, self._file_system_interface, self._file_system_ptr,
         )
         if not nt_success(result):
             raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
