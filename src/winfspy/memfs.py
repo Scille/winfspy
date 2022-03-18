@@ -542,7 +542,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         pass
 
 
-def create_memory_file_system(mountpoint, label="memfs", verbose=True, debug=False, testing=False):
+def create_memory_file_system(
+    mountpoint, label="memfs", prefix="", verbose=True, debug=False, testing=False
+):
     if debug:
         enable_debug_log()
 
@@ -571,7 +573,7 @@ def create_memory_file_system(mountpoint, label="memfs", verbose=True, debug=Fal
         post_cleanup_when_modified_only=1,
         um_file_context_is_user_context2=1,
         file_system_name=str(mountpoint),
-        prefix="",
+        prefix=prefix,
         debug=debug,
         reject_irp_prior_to_transact0=reject_irp_prior_to_transact0,
         # security_timeout_valid=1,
@@ -580,8 +582,8 @@ def create_memory_file_system(mountpoint, label="memfs", verbose=True, debug=Fal
     return fs
 
 
-def main(mountpoint, label, verbose, debug):
-    fs = create_memory_file_system(mountpoint, label, verbose, debug)
+def main(mountpoint, label, prefix, verbose, debug):
+    fs = create_memory_file_system(mountpoint, label, prefix, verbose, debug)
     try:
         print("Starting FS")
         fs.start()
@@ -609,5 +611,6 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-d", "--debug", action="store_true")
     parser.add_argument("-l", "--label", type=str, default="memfs")
+    parser.add_argument("-p", "--prefix", type=str, default="")
     args = parser.parse_args()
-    main(args.mountpoint, args.label, args.verbose, args.debug)
+    main(args.mountpoint, args.label, args.prefix, args.verbose, args.debug)
