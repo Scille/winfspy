@@ -25,6 +25,8 @@ MEMFS_AS_DIR_XFAIL_LIST = [
     "getfileinfo_test",
     "getfileinfo_name_test",
     "getvolinfo_test",
+    "delete_ex_test",
+    "rename_ex_test",
 ]
 
 

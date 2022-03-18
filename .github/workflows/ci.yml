@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python_version: [cp36, cp37, cp38, cp39]
+        python_version: [cp36, cp37, cp38, cp39, cp310]
         architecture: [win32, win_amd64]
 
     steps:
@@ -27,17 +27,17 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install winfsp
-        run: choco install winfsp -y --version=1.8.20304
+        run: choco install winfsp -y --version=1.10.22006
 
       - name: Download winfsp-tests-x86
         uses: engineerd/configurator@v0.0.6
         with:
           name: winfsp-tests-x86.exe
-          url: https://github.com/billziss-gh/winfsp/releases/download/v1.8/winfsp-tests-1.8.20304.zip
+          url: https://github.com/winfsp/winfsp/releases/download/v1.10/winfsp-tests-1.10.22006.zip
           pathInArchive: winfsp-tests-x86.exe
 
       - name: Run cibuildwheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v2.3.1
         env:
           CIBW_BUILD: ${{ matrix.python_version }}-${{ matrix.architecture }}
           CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov=winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
