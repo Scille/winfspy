@@ -37,7 +37,7 @@ jobs:
           pathInArchive: winfsp-tests-x86.exe
 
       - name: Run cibuildwheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
-        uses: joerick/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.11.3
         env:
           CIBW_BUILD: ${{ matrix.python_version }}-${{ matrix.architecture }}
           CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov=winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
