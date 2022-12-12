@@ -7,7 +7,7 @@ repos:
           - "--line-length=100"
       language_version: python3
 -   repo: https://github.com/pycqa/flake8 
-    rev: 21.7.0
+    rev: 6.0.0
     hooks:
     - id: flake8
       exclude: .*\.t
