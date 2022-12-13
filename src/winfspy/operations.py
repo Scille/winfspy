@@ -252,7 +252,10 @@ class BaseFileSystemOperations:
         cooked_file_context = ffi.from_handle(file_context)
         try:
             self.overwrite(
-                cooked_file_context, file_attributes, replace_file_attributes, allocation_size,
+                cooked_file_context,
+                file_attributes,
+                replace_file_attributes,
+                allocation_size,
             )
 
         except NTStatusError as exc:
@@ -261,7 +264,11 @@ class BaseFileSystemOperations:
         return self.ll_get_file_info(file_context, file_info)
 
     def overwrite(
-        self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int,
+        self,
+        file_context,
+        file_attributes,
+        replace_file_attributes: bool,
+        allocation_size: int,
     ) -> None:
         raise NotImplementedError()
 
@@ -350,7 +357,11 @@ class BaseFileSystemOperations:
 
         try:
             p_bytes_transferred[0] = self.write(
-                cooked_file_context, cooked_buffer, offset, write_to_end_of_file, constrained_io,
+                cooked_file_context,
+                cooked_buffer,
+                offset,
+                write_to_end_of_file,
+                constrained_io,
             )
 
         except NTStatusError as exc:

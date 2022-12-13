@@ -150,7 +150,10 @@ class FileSystem:
             device_path = lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME
 
         result = lib.FspFileSystemCreate(
-            device_path, self._volume_params, self._file_system_interface, self._file_system_ptr,
+            device_path,
+            self._volume_params,
+            self._file_system_interface,
+            self._file_system_ptr,
         )
         if not nt_success(result):
             raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")

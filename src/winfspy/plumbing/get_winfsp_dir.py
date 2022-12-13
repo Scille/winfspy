@@ -61,5 +61,5 @@ def get_winfsp_bin_dir():
 def get_winfsp_library_name():
     # See:
     # https://docs.python.org/3/library/platform.html#platform.architecture
-    is_64bits = sys.maxsize > 2 ** 32
+    is_64bits = sys.maxsize > 2**32
     return "winfsp-" + ("x64" if is_64bits else "x86")

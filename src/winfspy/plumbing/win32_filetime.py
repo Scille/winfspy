@@ -98,7 +98,10 @@ def filetime_to_dt(ft):
     >>> assert dt_to_filetime(filetime_to_dt(now)) == now, now
     """
     milliseconds = (ft - EPOCH_AS_FILETIME) // MILLISEDCONDS_TO_HNS
-    return datetime.fromtimestamp(milliseconds / MILLISECONDS, timezone.utc,)
+    return datetime.fromtimestamp(
+        milliseconds / MILLISECONDS,
+        timezone.utc,
+    )
 
 
 def filetime_now():
