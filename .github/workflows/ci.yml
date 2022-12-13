@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        python_version: [cp36, cp37, cp38, cp39, cp310]
+        python_version: [cp36, cp37, cp38, cp39, cp310, cp311]
         architecture: [win32, win_amd64]
 
     steps:
@@ -37,7 +37,7 @@ jobs:
           pathInArchive: winfsp-tests-x86.exe
 
       - name: Run cibuildwheel for ${{ matrix.python_version }}-${{ matrix.architecture }}
-        uses: joerick/cibuildwheel@v2.3.1
+        uses: pypa/cibuildwheel@v2.11.3
         env:
           CIBW_BUILD: ${{ matrix.python_version }}-${{ matrix.architecture }}
           CIBW_TEST_COMMAND: pytest --pyargs winfspy --doctest-modules --cov=winfspy --cov-report=xml:{project}/coverage.xml --cov-report=term -vvv --log-level INFO
