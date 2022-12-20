@@ -50,6 +50,7 @@ def file_system_path(request, tmp_path, as_drive):
     path = get_available_drive() if as_drive else tmp_path / "mountpoint"
     fs = create_memory_file_system(path, testing=True)
     fs.start()
+    print(fs)
     yield path
     fs.stop()
 
