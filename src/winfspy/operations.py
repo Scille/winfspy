@@ -71,9 +71,7 @@ class BaseFileSystemOperations:
             raise ValueError(
                 "`volume_label` should be at most 64 bytes long once encoded in UTF16 !"
             )
-        ffi.memmove(
-            volume_info.VolumeLabel, volume_label_encoded, len(volume_label_encoded)
-        )
+        ffi.memmove(volume_info.VolumeLabel, volume_label_encoded, len(volume_label_encoded))
         # The volume label length must be reported in bytes (and without NULL bytes at the end)
         volume_info.VolumeLabelLength = len(volume_label_encoded)
 
@@ -222,9 +220,7 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
 
         try:
-            cooked_file_context = self.open(
-                cooked_file_name, create_options, granted_access
-            )
+            cooked_file_context = self.open(cooked_file_name, create_options, granted_access)
 
         except NTStatusError as exc:
             return exc.value
@@ -320,9 +316,7 @@ class BaseFileSystemOperations:
     # ~~~ READ ~~~
 
     @_catch_unhandled_exceptions
-    def ll_read(
-        self, file_context, buffer, offset, length, p_bytes_transferred
-    ) -> NTSTATUS:
+    def ll_read(self, file_context, buffer, offset, length, p_bytes_transferred) -> NTSTATUS:
         """
         Read a file.
         """
@@ -548,17 +542,13 @@ class BaseFileSystemOperations:
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def rename(
-        self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool
-    ):
+    def rename(self, file_context, file_name: str, new_file_name: str, replace_if_exists: bool):
         raise NotImplementedError()
 
     # ~~~ GET_SECURITY ~~~
 
     @_catch_unhandled_exceptions
-    def ll_get_security(
-        self, file_context, security_descriptor, p_security_descriptor_size
-    ):
+    def ll_get_security(self, file_context, security_descriptor, p_security_descriptor_size):
         """
         Get file or directory security descriptor.
         """
@@ -588,17 +578,13 @@ class BaseFileSystemOperations:
     # ~~~ SET_SECURITY ~~~
 
     @_catch_unhandled_exceptions
-    def ll_set_security(
-        self, file_context, security_information, modification_descriptor
-    ):
+    def ll_set_security(self, file_context, security_information, modification_descriptor):
         """
         Set file or directory security descriptor.
         """
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.set_security(
-                cooked_file_context, security_information, modification_descriptor
-            )
+            self.set_security(cooked_file_context, security_information, modification_descriptor)
 
         except NTStatusError as exc:
             return exc.value
@@ -611,9 +597,7 @@ class BaseFileSystemOperations:
     # ~~~ READ_DIRECTORY ~~~
 
     @_catch_unhandled_exceptions
-    def ll_read_directory(
-        self, file_context, pattern, marker, buffer, length, p_bytes_transferred
-    ):
+    def ll_read_directory(self, file_context, pattern, marker, buffer, length, p_bytes_transferred):
         """
         Read a directory.
         """
@@ -643,9 +627,7 @@ class BaseFileSystemOperations:
             dir_info.Size = dir_info_size
             ffi.memmove(dir_info.FileNameBuf, file_name_encoded, len(file_name_encoded))
             configure_file_info(dir_info.FileInfo, **entry_info)
-            if not lib.FspFileSystemAddDirInfo(
-                dir_info, buffer, length, p_bytes_transferred
-            ):
+            if not lib.FspFileSystemAddDirInfo(dir_info, buffer, length, p_bytes_transferred):
                 return NTSTATUS.STATUS_SUCCESS
 
         lib.FspFileSystemAddDirInfo(ffi.NULL, buffer, length, p_bytes_transferred)
@@ -728,9 +710,7 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
         # TODO: handle buffer and p_size here
         try:
-            self.get_reparse_point(
-                cooked_file_context, cooked_file_name, buffer, p_size
-            )
+            self.get_reparse_point(cooked_file_context, cooked_file_name, buffer, p_size)
 
         except NTStatusError as exc:
             return exc.value
@@ -772,9 +752,7 @@ class BaseFileSystemOperations:
         cooked_file_name = ffi.string(file_name)
         # TODO: handle buffer and size here
         try:
-            self.delete_reparse_point(
-                cooked_file_context, cooked_file_name, buffer, size
-            )
+            self.delete_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
 
         except NTStatusError as exc:
             return exc.value
@@ -792,14 +770,10 @@ class BaseFileSystemOperations:
         Get named streams information.
         Must set `volum_params.named_streams` to 1 for this method to be used.
         """
-        cooked_file_context = ffi.from_handle(
-            file_context, buffer, length, p_bytes_transferred
-        )
+        cooked_file_context = ffi.from_handle(file_context, buffer, length, p_bytes_transferred)
         # TODO: handle p_bytes_transferred here
         try:
-            self.get_stream_info(
-                cooked_file_context, buffer, length, p_bytes_transferred
-            )
+            self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
 
         except NTStatusError as exc:
             return exc.value

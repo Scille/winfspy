@@ -6,9 +6,7 @@ import pathlib
 
 def winreg_get_value(rootkey, keyname, valname):
     try:
-        with winreg.OpenKey(
-            rootkey, keyname, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY
-        ) as key:
+        with winreg.OpenKey(rootkey, keyname, 0, winreg.KEY_READ | winreg.KEY_WOW64_32KEY) as key:
             return str(winreg.QueryValueEx(key, valname)[0])
     except WindowsError:
         return None
@@ -29,9 +27,7 @@ def get_winfsp_dir(suffix=None):
     path = os.environ.get("WINFSP_LIBRARY_PATH")
 
     if not path:
-        path = winreg_get_value(
-            winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir"
-        )
+        path = winreg_get_value(winreg.HKEY_LOCAL_MACHINE, "SOFTWARE\\WinFsp", r"InstallDir")
 
     if not path:
         raise RuntimeError("The WinFsp library path is not provided")

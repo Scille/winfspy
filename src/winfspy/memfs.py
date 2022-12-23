@@ -185,9 +185,7 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self._root_obj = FolderObj(
             self._root_path,
             FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY,
-            SecurityDescriptor.from_string(
-                "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
-            ),
+            SecurityDescriptor.from_string("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"),
         )
         self._entries = {self._root_path: self._root_obj}
         self._thread_lock = threading.Lock()
