@@ -14,7 +14,10 @@ def pytest_addoption(parser):
             help="A path to the file system to test",
         )
         parser.addoption(
-            "--enable-stream-tests", action="store_true", default=False, help="Enable stream tests",
+            "--enable-stream-tests",
+            action="store_true",
+            default=False,
+            help="Enable stream tests",
         )
     # Options already added (via the pluging module)
     except ValueError:

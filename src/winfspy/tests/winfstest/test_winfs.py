@@ -30,7 +30,12 @@ def get_test_modules(base="cases"):
 
 
 TEST_MODULES = list(get_test_modules())
-SYMBOL_DICT = {**win32api.__dict__, **win32con.__dict__, **win32file.__dict__, **winnt.__dict__}
+SYMBOL_DICT = {
+    **win32api.__dict__,
+    **win32con.__dict__,
+    **win32file.__dict__,
+    **winnt.__dict__,
+}
 SYMBOLS = types.SimpleNamespace(**SYMBOL_DICT)
 
 
@@ -106,8 +111,11 @@ def create_file(
     security_attributes = win32security.SECURITY_ATTRIBUTES()
     security_attributes.bInheritHandle = 0
     if sddl:
-        security_attributes.SECURITY_DESCRIPTOR = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
-            sddl, win32security.SDDL_REVISION_1,
+        security_attributes.SECURITY_DESCRIPTOR = (
+            win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
+                sddl,
+                win32security.SDDL_REVISION_1,
+            )
         )
 
     # Windows API call
@@ -172,8 +180,11 @@ def create_directory(path, sddl):
     security_attributes = win32security.SECURITY_ATTRIBUTES()
     security_attributes.bInheritHandle = 0
     if sddl:
-        security_attributes.SECURITY_DESCRIPTOR = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
-            sddl, win32security.SDDL_REVISION_1,
+        security_attributes.SECURITY_DESCRIPTOR = (
+            win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
+                sddl,
+                win32security.SDDL_REVISION_1,
+            )
         )
 
     # Windows API call
@@ -213,7 +224,9 @@ def set_end_of_file(path, length):
     # Second windows API call
     assert handle != win32file.INVALID_HANDLE_VALUE
     win32file.SetFileInformationByHandle(
-        handle, SYMBOLS.FileEndOfFileInfo, length,
+        handle,
+        SYMBOLS.FileEndOfFileInfo,
+        length,
     )
 
     # Close the handle
@@ -251,7 +264,10 @@ def set_file_time(path, creation_time, last_access_time, last_write_time):
     # Second windows API call
     assert handle != win32file.INVALID_HANDLE_VALUE
     win32file.SetFileTime(
-        handle, creation_time, last_access_time, last_write_time,
+        handle,
+        creation_time,
+        last_access_time,
+        last_write_time,
     )
 
     # Close the handle
@@ -280,7 +296,8 @@ def get_file_security(path, info):
 def set_file_security(path, info, sddl):
     # Create security descriptor
     descriptor = win32security.ConvertStringSecurityDescriptorToSecurityDescriptor(
-        sddl, win32security.SDDL_REVISION_1,
+        sddl,
+        win32security.SDDL_REVISION_1,
     )
 
     # Windows api call
@@ -397,7 +414,13 @@ def expect_task(parser, runner, cmd, expected=None):
     # This is not performed through the process executor because we want to keep an open handle.
     # CreateFile doesn't seem to produce deadlocks so it seems fine.
     handle = win32file.CreateFile(
-        path, desired_access, share_mode, None, creation_disposition, flags_and_attributes, 0
+        path,
+        desired_access,
+        share_mode,
+        None,
+        creation_disposition,
+        flags_and_attributes,
+        0,
     )
     assert handle != win32file.INVALID_HANDLE_VALUE
 
@@ -428,7 +451,9 @@ def process_runner():
 
 
 @pytest.mark.parametrize(
-    "test_module_path", TEST_MODULES, ids=[path.name for path in TEST_MODULES],
+    "test_module_path",
+    TEST_MODULES,
+    ids=[path.name for path in TEST_MODULES],
 )
 def test_winfs(test_module_path, file_system_path, process_runner):
     parser = partial(parse_argument, file_system_path)

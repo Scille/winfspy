@@ -23,7 +23,10 @@ def _trampolin_fs_GetSecurityByName(
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_security_by_name(
-        FileName, PFileAttributesOrReparsePointIndex, SecurityDescriptor, PSecurityDescriptorSize,
+        FileName,
+        PFileAttributesOrReparsePointIndex,
+        SecurityDescriptor,
+        PSecurityDescriptorSize,
     )
 
 
@@ -53,14 +56,23 @@ def _trampolin_fs_Create(
 
 
 @ffi.def_extern()
-def _trampolin_fs_Open(FileSystem, FileName, CreateOptions, GrantedAccess, PFileContext, FileInfo):
+def _trampolin_fs_Open(
+    FileSystem, FileName, CreateOptions, GrantedAccess, PFileContext, FileInfo
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_open(FileName, CreateOptions, GrantedAccess, PFileContext, FileInfo)
+    return user_context.ll_open(
+        FileName, CreateOptions, GrantedAccess, PFileContext, FileInfo
+    )
 
 
 @ffi.def_extern()
 def _trampolin_fs_Overwrite(
-    FileSystem, FileContext, FileAttributes, ReplaceFileAttributes, AllocationSize, FileInfo,
+    FileSystem,
+    FileContext,
+    FileAttributes,
+    ReplaceFileAttributes,
+    AllocationSize,
+    FileInfo,
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_overwrite(
@@ -81,7 +93,9 @@ def _trampolin_fs_Close(FileSystem, FileContext):
 
 
 @ffi.def_extern()
-def _trampolin_fs_Read(FileSystem, FileContext, Buffer, Offset, Length, PBytesTransferred):
+def _trampolin_fs_Read(
+    FileSystem, FileContext, Buffer, Offset, Length, PBytesTransferred
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_read(FileContext, Buffer, Offset, Length, PBytesTransferred)
 
@@ -147,9 +161,13 @@ def _trampolin_fs_SetBasicInfo(
 
 
 @ffi.def_extern()
-def _trampolin_fs_SetFileSize(FileSystem, FileContext, NewSize, SetAllocationSize, FileInfo):
+def _trampolin_fs_SetFileSize(
+    FileSystem, FileContext, NewSize, SetAllocationSize, FileInfo
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_set_file_size(FileContext, NewSize, SetAllocationSize, FileInfo)
+    return user_context.ll_set_file_size(
+        FileContext, NewSize, SetAllocationSize, FileInfo
+    )
 
 
 @ffi.def_extern()
@@ -159,21 +177,31 @@ def _trampolin_fs_CanDelete(FileSystem, FileContext, FileName):
 
 
 @ffi.def_extern()
-def _trampolin_fs_Rename(FileSystem, FileContext, FileName, NewFileName, ReplaceIfExists):
+def _trampolin_fs_Rename(
+    FileSystem, FileContext, FileName, NewFileName, ReplaceIfExists
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_rename(FileContext, FileName, NewFileName, ReplaceIfExists)
 
 
 @ffi.def_extern()
-def _trampolin_fs_GetSecurity(FileSystem, FileContext, SecurityDescriptor, PSecurityDescriptorSize):
+def _trampolin_fs_GetSecurity(
+    FileSystem, FileContext, SecurityDescriptor, PSecurityDescriptorSize
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_get_security(FileContext, SecurityDescriptor, PSecurityDescriptorSize)
+    return user_context.ll_get_security(
+        FileContext, SecurityDescriptor, PSecurityDescriptorSize
+    )
 
 
 @ffi.def_extern()
-def _trampolin_fs_SetSecurity(FileSystem, FileContext, SecurityInformation, ModificationDescriptor):
+def _trampolin_fs_SetSecurity(
+    FileSystem, FileContext, SecurityInformation, ModificationDescriptor
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_set_security(FileContext, SecurityInformation, ModificationDescriptor)
+    return user_context.ll_set_security(
+        FileContext, SecurityInformation, ModificationDescriptor
+    )
 
 
 @ffi.def_extern()
@@ -188,7 +216,13 @@ def _trampolin_fs_ReadDirectory(
 
 @ffi.def_extern()
 def _trampolin_fs_ResolveReparsePoints(
-    FileSystem, FileName, ReparsePointIndex, ResolveLastPathComponent, PIoStatus, Buffer, PSize,
+    FileSystem,
+    FileName,
+    ReparsePointIndex,
+    ResolveLastPathComponent,
+    PIoStatus,
+    Buffer,
+    PSize,
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_resolve_reparse_points(
@@ -215,9 +249,13 @@ def _trampolin_fs_DeleteReparsePoint(FileSystem, FileContext, FileName, Buffer, 
 
 
 @ffi.def_extern()
-def _trampolin_fs_GetStreamInfo(FileSystem, FileContext, Buffer, Length, PBytesTransferred):
+def _trampolin_fs_GetStreamInfo(
+    FileSystem, FileContext, Buffer, Length, PBytesTransferred
+):
     user_context = ffi.from_handle(FileSystem.UserContext)
-    return user_context.ll_get_stream_info(FileContext, Buffer, Length, PBytesTransferred)
+    return user_context.ll_get_stream_info(
+        FileContext, Buffer, Length, PBytesTransferred
+    )
 
 
 @ffi.def_extern()

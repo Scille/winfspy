@@ -58,7 +58,9 @@ def file_system_tempdir(file_system_path):
 
 
 @pytest.mark.parametrize("test_case", TEST_CASES)
-def test_winfsp_tests(test_case, file_system_tempdir, enable_stream_tests, memfs_tests, as_drive):
+def test_winfsp_tests(
+    test_case, file_system_tempdir, enable_stream_tests, memfs_tests, as_drive
+):
     if test_case.startswith("stream_") and not enable_stream_tests:
         pytest.skip()
 
