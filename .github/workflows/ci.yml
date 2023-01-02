@@ -5,7 +5,7 @@ on:
   pull_request:
 
 env:
-  winfsp_version: "1.12.22242"
+  winfsp_version: "1.12.22285"
 
 jobs:
 
