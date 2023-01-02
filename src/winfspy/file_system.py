@@ -155,6 +155,7 @@ class FileSystem:
             self._file_system_interface,
             self._file_system_ptr,
         )
+        print(result)
         if not nt_success(result):
             raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
 
@@ -164,6 +165,7 @@ class FileSystem:
 
         if self.debug:
             lib.FspFileSystemSetDebugLogF(self._file_system_ptr[0], 0xFFFFFFFF)
+
 
     def start(self):
         if self.started:
