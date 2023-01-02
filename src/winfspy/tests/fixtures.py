@@ -1,5 +1,5 @@
 import pathlib
-
+import time
 import pytest
 from winfspy.memfs import create_memory_file_system
 
@@ -52,9 +52,8 @@ def file_system_path(request, tmp_path, as_drive):
     # Run a winfspy.memfs file system
     path = get_available_drive() if as_drive else tmp_path / "mountpoint"
     fs = create_memory_file_system(path, testing=True)
-    import time
     fs.start()
-    time.sleep(0.1) 
+    time.sleep(0.001) 
     yield path
     fs.stop()
 
