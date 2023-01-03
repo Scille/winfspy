@@ -23,7 +23,10 @@ def _trampolin_fs_GetSecurityByName(
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_get_security_by_name(
-        FileName, PFileAttributesOrReparsePointIndex, SecurityDescriptor, PSecurityDescriptorSize,
+        FileName,
+        PFileAttributesOrReparsePointIndex,
+        SecurityDescriptor,
+        PSecurityDescriptorSize,
     )
 
 
@@ -60,7 +63,12 @@ def _trampolin_fs_Open(FileSystem, FileName, CreateOptions, GrantedAccess, PFile
 
 @ffi.def_extern()
 def _trampolin_fs_Overwrite(
-    FileSystem, FileContext, FileAttributes, ReplaceFileAttributes, AllocationSize, FileInfo,
+    FileSystem,
+    FileContext,
+    FileAttributes,
+    ReplaceFileAttributes,
+    AllocationSize,
+    FileInfo,
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_overwrite(
@@ -188,7 +196,13 @@ def _trampolin_fs_ReadDirectory(
 
 @ffi.def_extern()
 def _trampolin_fs_ResolveReparsePoints(
-    FileSystem, FileName, ReparsePointIndex, ResolveLastPathComponent, PIoStatus, Buffer, PSize,
+    FileSystem,
+    FileName,
+    ReparsePointIndex,
+    ResolveLastPathComponent,
+    PIoStatus,
+    Buffer,
+    PSize,
 ):
     user_context = ffi.from_handle(FileSystem.UserContext)
     return user_context.ll_resolve_reparse_points(

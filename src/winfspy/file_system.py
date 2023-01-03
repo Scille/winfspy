@@ -1,3 +1,7 @@
+import os
+import time
+import errno
+
 from .plumbing import ffi, lib, cook_ntstatus, nt_success, file_system_interface_trampoline_factory
 from .plumbing import WinFSPyError, FileSystemAlreadyStarted, FileSystemNotStarted
 from .operations import BaseFileSystemOperations
@@ -150,7 +154,10 @@ class FileSystem:
             device_path = lib.WFSPY_FSP_FSCTL_DISK_DEVICE_NAME
 
         result = lib.FspFileSystemCreate(
-            device_path, self._volume_params, self._file_system_interface, self._file_system_ptr,
+            device_path,
+            self._volume_params,
+            self._file_system_interface,
+            self._file_system_ptr,
         )
         if not nt_success(result):
             raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
@@ -173,6 +180,21 @@ class FileSystem:
         result = lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
         if not nt_success(result):
             raise WinFSPyError(f"Cannot start file system dispatcher: {cook_ntstatus(result).name}")
+        # Since winfsp 1.12.22301 (2022-2), the file system might not be reachable as soon as the dispatcher is started.
+        # Instead a request might fail with the following error:
+        # [WinError 995] The I/O operation has been aborted because of either a thread exit or an application request
+        # In order to avoid this issue, we simply stat the mountpoint until it responds, with a maximum of 10 attempts.
+        attemps = 10
+        delay = 0.01  # seconds
+        for i in range(attemps):
+            try:
+                os.stat(self.mountpoint)
+                break
+            except OSError as e:
+                if e.errno == errno.EINVAL and e.winerror in (995, 1005):
+                    time.sleep(delay)
+                    continue
+                raise
 
     def restart(self, **volume_params):
         self.stop()
