@@ -708,16 +708,18 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and p_size here
         try:
-            self.get_reparse_point(cooked_file_context, cooked_file_name, buffer, p_size)
+            buf = self.get_reparse_point(cooked_file_context, cooked_file_name)
 
         except NTStatusError as exc:
             return exc.value
 
+        ffi.buffer(buffer, len(buf))[:] = buf
+        ffi.buffer(p_size)[:] = len(buf).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
+        
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_reparse_point(self, file_context, file_name: str, buffer, p_size):
+    def get_reparse_point(self, file_context, file_name: str):
         raise NotImplementedError()
 
     # ~~~ SET_REPARSE_POINT ~~~
@@ -729,16 +731,16 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and size here
+        buf = bytes(ffi.buffer(buffer, size))
         try:
-            self.set_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
+            self.set_reparse_point(cooked_file_context, cooked_file_name, buf)
 
         except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def set_reparse_point(self, file_context, file_name: str, buffer, size: int):
+    def set_reparse_point(self, file_context, file_name: str, buf):
         raise NotImplementedError()
 
     # ~~~ DELETE_REPARSE_POINT ~~~
