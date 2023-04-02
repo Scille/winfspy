@@ -17,6 +17,7 @@ from .exceptions import (
     NTStatusEndOfFile,
     NTStatusDirectoryNotEmpty,
     NTStatusMediaWriteProtected,
+    NTStatusNotAReparsePoint,
 )
 
 
@@ -58,4 +59,5 @@ __all__ = (
     "NTStatusEndOfFile",
     "NTStatusDirectoryNotEmpty",
     "NTStatusMediaWriteProtected",
+    "NTStatusNotAReparsePoint",
 )
