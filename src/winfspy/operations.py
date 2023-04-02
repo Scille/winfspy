@@ -1,4 +1,5 @@
 import sys
+import struct
 import logging
 import threading
 from typing import List
@@ -672,9 +673,8 @@ class BaseFileSystemOperations:
         Resolve reparse points.
         """
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle p_io_status, buffer and p_size here
         try:
-            self.resolve_reparse_points(
+            buf = self.resolve_reparse_points(
                 cooked_file_name,
                 reparse_point_index,
                 resolve_last_path_component,
@@ -685,6 +685,10 @@ class BaseFileSystemOperations:
 
         except NTStatusError as exc:
             return exc.value
+
+        ffi.buffer(buffer, len(buf))[:] = buf
+        ffi.buffer(p_size)[:] = len(buf).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
+        ffi.buffer(p_io_status)[:] = int(NTSTATUS.STATUS_REPARSE).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')+int.from_bytes(buf[:4], 'big' if 'BE' in _STRING_ENCODING else 'little').to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -752,16 +756,16 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and size here
+        buf = bytes(ffi.buffer(buffer, size))
         try:
-            self.delete_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
+            self.delete_reparse_point(cooked_file_context, cooked_file_name, buf)
 
         except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def delete_reparse_point(self, file_context, file_name: str, buffer, size: int):
+    def delete_reparse_point(self, file_context, file_name: str, buf):
         raise NotImplementedError()
 
     # ~~~ GET_STREAM_INFO ~~~
