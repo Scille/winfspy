@@ -45,3 +45,6 @@ class NTStatusDirectoryNotEmpty(NTStatusError):
 
 class NTStatusMediaWriteProtected(NTStatusError):
     value = NTSTATUS.STATUS_MEDIA_WRITE_PROTECTED
+
+class NTStatusNotAReparsePoint(NTStatusError):
+    value = NTSTATUS.STATUS_NOT_A_REPARSE_POINT
