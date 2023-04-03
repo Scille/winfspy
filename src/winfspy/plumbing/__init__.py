@@ -18,6 +18,7 @@ from .exceptions import (
     NTStatusDirectoryNotEmpty,
     NTStatusMediaWriteProtected,
     NTStatusNotAReparsePoint,
+    NTStatusReparsePointNotResolved,
 )
 
 
@@ -60,4 +61,5 @@ __all__ = (
     "NTStatusDirectoryNotEmpty",
     "NTStatusMediaWriteProtected",
     "NTStatusNotAReparsePoint",
+    "NTStatusReparsePointNotResolved",
 )
