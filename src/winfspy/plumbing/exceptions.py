@@ -48,3 +48,6 @@ class NTStatusMediaWriteProtected(NTStatusError):
 
 class NTStatusNotAReparsePoint(NTStatusError):
     value = NTSTATUS.STATUS_NOT_A_REPARSE_POINT
+
+class NTStatusReparsePointNotResolved(NTStatusError):
+    value = NTSTATUS.STATUS_REPARSE_POINT_NOT_RESOLVED
