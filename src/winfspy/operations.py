@@ -776,13 +776,15 @@ class BaseFileSystemOperations:
         Get named streams information.
         Must set `volum_params.named_streams` to 1 for this method to be used.
         """
-        cooked_file_context = ffi.from_handle(file_context, buffer, length, p_bytes_transferred)
-        # TODO: handle p_bytes_transferred here
+        cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
+            buf = self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
 
         except NTStatusError as exc:
             return exc.value
+
+        ffi.buffer(buffer, len(buf))[:] = buf
+        ffi.buffer(p_bytes_transferred)[:] = len(buf).to_bytes(4, 'big' if 'BE' in _STRING_ENCODING else 'little')
 
         return NTSTATUS.STATUS_SUCCESS
 
