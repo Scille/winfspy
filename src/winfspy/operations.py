@@ -778,14 +778,25 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         try:
-            buf = self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
+            entries_info = self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
 
         except NTStatusError as exc:
             return exc.value
 
-        ffi.buffer(buffer, len(buf))[:] = buf
-        ffi.buffer(p_bytes_transferred)[:] = len(buf).to_bytes(4, 'big' if 'BE' in _STRING_ENCODING else 'little')
+        for entry_info in entries_info:
+            stream_name = entry_info["file_name"]
+            stream_name_encoded = stream_name.encode(_STRING_ENCODING)
+            stream_info_size = ffi.sizeof("FSP_FSCTL_STREAM_INFO") + len(stream_name_encoded)
+            stream_info_raw = ffi.new("char[]", stream_info_size)
+            stream_info = ffi.cast("FSP_FSCTL_STREAM_INFO*", stream_info_raw)
+            stream_info.Size = stream_info_size
+            stream_info.StreamSize = entry_info["file_size"]
+            stream_info.StreamAllocationSize = entry_info["allocation_size"]
+            ffi.memmove(stream_info.StreamNameBuf, stream_name_encoded, len(stream_name_encoded))
+            if not lib.FspFileSystemAddStreamInfo(stream_info, buffer, length, p_bytes_transferred):
+                return NTSTATUS.STATUS_SUCCESS
 
+        lib.FspFileSystemAddStreamInfo(ffi.NULL, buffer, length, p_bytes_transferred)
         return NTSTATUS.STATUS_SUCCESS
 
     def get_stream_info(self, file_context, buffer, length: int, p_bytes_transferred):
