@@ -39,15 +39,19 @@ def operation(fn):
     def wrapper(self, *args, **kwargs):
         head = args[0] if args else None
         tail = args[1:] if args else ()
-        try:
-            with self._thread_lock:
-                result = fn(self, *args, **kwargs)
-        except Exception as exc:
-            logging.info(f" NOK | {name:20} | {head!r:20} | {tail!r:20} | {exc!r}")
-            raise
+        if logging.root.level>=logging.INFO:
+            try:
+                with self._thread_lock:
+                    result = fn(self, *args, **kwargs)
+            except Exception as exc:
+                logging.info(f" NOK | {name:20} | {head!r:20} | {tail!r:20} | {exc!r}")
+                raise
+            else:
+                logging.info(f" OK! | {name:20} | {head!r:20} | {tail!r:20} | {result!r}")
+                return result
         else:
-            logging.info(f" OK! | {name:20} | {head!r:20} | {tail!r:20} | {result!r}")
-            return result
+            with self._thread_lock:
+                return fn(self, *args, **kwargs)
 
     return wrapper
 
@@ -555,8 +559,10 @@ def create_memory_file_system(
     if debug:
         enable_debug_log()
 
+    logging.root.level=logging.NOTSET
     if verbose:
         logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+        logging.root.level=logging.INFO
 
     # The avast workaround is not necessary with drives
     # Also, it is not compatible with winfsp-tests
