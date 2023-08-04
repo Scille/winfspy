@@ -239,6 +239,15 @@ typedef struct
 } FSP_FSCTL_DIR_INFO;
 
 
+typedef struct
+{
+    UINT16 Size;
+    UINT64 StreamSize;
+    UINT64 StreamAllocationSize;
+    WCHAR StreamNameBuf[];
+} FSP_FSCTL_STREAM_INFO;
+
+
 typedef struct {
     ...;
 } FSP_FSCTL_TRANSACT_REQ;
