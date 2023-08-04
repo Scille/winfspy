@@ -323,11 +323,6 @@ typedef struct {
 } FSP_FSCTL_VOLUME_PARAMS;
 
 
-typedef struct {
-    ...;
-} FSP_FSCTL_STREAM_INFO;
-
-
 /******************************************************
  *                WinFSP winfsp.h stuff               *
  ******************************************************/
