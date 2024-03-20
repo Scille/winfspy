@@ -105,8 +105,3 @@ Usage::
     # More information about pytest
     $ python winfspy.tests.winfstest -h
 
-
-License
--------
-
-Free software: BSD
