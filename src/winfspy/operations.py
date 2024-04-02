@@ -1,4 +1,5 @@
 import sys
+import struct
 import logging
 import threading
 from typing import List
@@ -672,9 +673,8 @@ class BaseFileSystemOperations:
         Resolve reparse points.
         """
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle p_io_status, buffer and p_size here
         try:
-            self.resolve_reparse_points(
+            buf = self.resolve_reparse_points(
                 cooked_file_name,
                 reparse_point_index,
                 resolve_last_path_component,
@@ -685,6 +685,10 @@ class BaseFileSystemOperations:
 
         except NTStatusError as exc:
             return exc.value
+
+        ffi.buffer(buffer, len(buf))[:] = buf
+        ffi.buffer(p_size)[:] = len(buf).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
+        ffi.buffer(p_io_status)[:] = int(NTSTATUS.STATUS_REPARSE).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')+int.from_bytes(buf[:4], 'big' if 'BE' in _STRING_ENCODING else 'little').to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
 
         return NTSTATUS.STATUS_SUCCESS
 
@@ -708,16 +712,18 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and p_size here
         try:
-            self.get_reparse_point(cooked_file_context, cooked_file_name, buffer, p_size)
+            buf = self.get_reparse_point(cooked_file_context, cooked_file_name)
 
         except NTStatusError as exc:
             return exc.value
 
+        ffi.buffer(buffer, len(buf))[:] = buf
+        ffi.buffer(p_size)[:] = len(buf).to_bytes(8, 'big' if 'BE' in _STRING_ENCODING else 'little')
+        
         return NTSTATUS.STATUS_SUCCESS
 
-    def get_reparse_point(self, file_context, file_name: str, buffer, p_size):
+    def get_reparse_point(self, file_context, file_name: str):
         raise NotImplementedError()
 
     # ~~~ SET_REPARSE_POINT ~~~
@@ -729,16 +735,16 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and size here
+        buf = bytes(ffi.buffer(buffer, size))
         try:
-            self.set_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
+            self.set_reparse_point(cooked_file_context, cooked_file_name, buf)
 
         except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def set_reparse_point(self, file_context, file_name: str, buffer, size: int):
+    def set_reparse_point(self, file_context, file_name: str, buf):
         raise NotImplementedError()
 
     # ~~~ DELETE_REPARSE_POINT ~~~
@@ -750,16 +756,16 @@ class BaseFileSystemOperations:
         """
         cooked_file_context = ffi.from_handle(file_context)
         cooked_file_name = ffi.string(file_name)
-        # TODO: handle buffer and size here
+        buf = bytes(ffi.buffer(buffer, size))
         try:
-            self.delete_reparse_point(cooked_file_context, cooked_file_name, buffer, size)
+            self.delete_reparse_point(cooked_file_context, cooked_file_name, buf)
 
         except NTStatusError as exc:
             return exc.value
 
         return NTSTATUS.STATUS_SUCCESS
 
-    def delete_reparse_point(self, file_context, file_name: str, buffer, size: int):
+    def delete_reparse_point(self, file_context, file_name: str, buf):
         raise NotImplementedError()
 
     # ~~~ GET_STREAM_INFO ~~~
@@ -770,14 +776,27 @@ class BaseFileSystemOperations:
         Get named streams information.
         Must set `volum_params.named_streams` to 1 for this method to be used.
         """
-        cooked_file_context = ffi.from_handle(file_context, buffer, length, p_bytes_transferred)
-        # TODO: handle p_bytes_transferred here
+        cooked_file_context = ffi.from_handle(file_context)
         try:
-            self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
+            entries_info = self.get_stream_info(cooked_file_context, buffer, length, p_bytes_transferred)
 
         except NTStatusError as exc:
             return exc.value
 
+        for entry_info in entries_info:
+            stream_name = entry_info["file_name"]
+            stream_name_encoded = stream_name.encode(_STRING_ENCODING)
+            stream_info_size = ffi.sizeof("FSP_FSCTL_STREAM_INFO") + len(stream_name_encoded)
+            stream_info_raw = ffi.new("char[]", stream_info_size)
+            stream_info = ffi.cast("FSP_FSCTL_STREAM_INFO*", stream_info_raw)
+            stream_info.Size = stream_info_size
+            stream_info.StreamSize = entry_info["file_size"]
+            stream_info.StreamAllocationSize = entry_info["allocation_size"]
+            ffi.memmove(stream_info.StreamNameBuf, stream_name_encoded, len(stream_name_encoded))
+            if not lib.FspFileSystemAddStreamInfo(stream_info, buffer, length, p_bytes_transferred):
+                return NTSTATUS.STATUS_SUCCESS
+
+        lib.FspFileSystemAddStreamInfo(ffi.NULL, buffer, length, p_bytes_transferred)
         return NTSTATUS.STATUS_SUCCESS
 
     def get_stream_info(self, file_context, buffer, length: int, p_bytes_transferred):
