@@ -24,8 +24,7 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""Tools to convert between Python datetime instances and Microsoft times.
-"""
+"""Tools to convert between Python datetime instances and Microsoft times."""
 
 import time
 import ctypes

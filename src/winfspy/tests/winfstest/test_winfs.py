@@ -30,7 +30,12 @@ def get_test_modules(base="cases"):
 
 
 TEST_MODULES = list(get_test_modules())
-SYMBOL_DICT = {**win32api.__dict__, **win32con.__dict__, **win32file.__dict__, **winnt.__dict__}
+SYMBOL_DICT = {
+    **win32api.__dict__,
+    **win32con.__dict__,
+    **win32file.__dict__,
+    **winnt.__dict__,
+}
 SYMBOLS = types.SimpleNamespace(**SYMBOL_DICT)
 
 
@@ -344,7 +349,7 @@ def expect(parser, runner, cmd, expected):
     Return a tuple corresponding to: (errno, <result(s) iterable>)
     """
     expected = expected or None
-    print(f"** Running command:")
+    print("** Running command:")
     print(f"-> {cmd}")
     print(f"-> Expecting: {expected}")
 
@@ -386,9 +391,9 @@ def expect_task(parser, runner, cmd, expected=None):
     assert not expected
     assert args[0] == "CreateFile"
 
-    print(f"** Running command:")
+    print("** Running command:")
     print(f"-> {cmd}")
-    print(f"-> Expecting a handle to keep open")
+    print("-> Expecting a handle to keep open")
 
     # Unpack args
     (
@@ -409,7 +414,13 @@ def expect_task(parser, runner, cmd, expected=None):
     # This is not performed through the process executor because we want to keep an open handle.
     # CreateFile doesn't seem to produce deadlocks so it seems fine.
     handle = win32file.CreateFile(
-        path, desired_access, share_mode, None, creation_disposition, flags_and_attributes, 0
+        path,
+        desired_access,
+        share_mode,
+        None,
+        creation_disposition,
+        flags_and_attributes,
+        0,
     )
     assert handle != win32file.INVALID_HANDLE_VALUE
 
