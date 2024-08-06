@@ -6,6 +6,7 @@ on:
 
 env:
   winfsp_version: "1.12.22339"
+  python_default_version: "3.12"
 
 jobs:
 
@@ -14,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
+        python-version: ${{ env.python_default_version }}
       - uses: pre-commit/action@v2.0.0
 
   Wheels:
@@ -23,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: [cp36, cp37, cp38, cp39, cp310, cp311]
+        python_version: [cp39, cp310, cp311, cp312]
         architecture: [win32, win_amd64]
 
     steps:
@@ -74,10 +76,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: ${{ env.python_default_version }}
 
       - name: Build source distribution
-        run: python setup.py sdist
+        run: |
+          pip install .
+          python setup.py sdist
 
       - name: Upload wheel as an artifact
         uses: actions/upload-artifact@v2
