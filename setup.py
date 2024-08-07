@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 
-import os
-import sys
-
 from setuptools import setup, find_packages
-
-
-os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
 
 # Awesome hack to load `__version__`
@@ -30,13 +24,13 @@ setup(
     author="Emmanuel Leblond",
     author_email="emmanuel.leblond@gmail.com",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Operating System :: Microsoft :: Windows",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "License :: OSI Approved :: BSD License",
     ],
     package_dir={"": "src"},

@@ -12,7 +12,6 @@ __all__ = ["SecurityDescriptor"]
 
 
 class SecurityDescriptor(NamedTuple):
-
     handle: Any
     size: int
 
@@ -49,7 +48,11 @@ class SecurityDescriptor(NamedTuple):
             | lib.WFSPY_SACL_SECURITY_INFORMATION
         )
         if not lib.ConvertSecurityDescriptorToStringSecurityDescriptorW(
-            self.handle, lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION, flags, pwstr, ffi.NULL
+            self.handle,
+            lib.WFSPY_STRING_SECURITY_DESCRIPTOR_REVISION,
+            flags,
+            pwstr,
+            ffi.NULL,
         ):
             raise RuntimeError(
                 f"Cannot convert the given security descriptor to string: "

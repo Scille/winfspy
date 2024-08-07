@@ -2,7 +2,13 @@ import os
 import time
 import errno
 
-from .plumbing import ffi, lib, cook_ntstatus, nt_success, file_system_interface_trampoline_factory
+from .plumbing import (
+    ffi,
+    lib,
+    cook_ntstatus,
+    nt_success,
+    file_system_interface_trampoline_factory,
+)
 from .plumbing import WinFSPyError, FileSystemAlreadyStarted, FileSystemNotStarted
 from .operations import BaseFileSystemOperations
 
@@ -110,7 +116,9 @@ class FileSystem:
     def __init__(self, mountpoint, operations, debug=False, **volume_params):
         self.started = False
         if not isinstance(operations, BaseFileSystemOperations):
-            raise ValueError(f"`operations` must be a `BaseFileSystemOperations` instance.")
+            raise ValueError(
+                "`operations` must be a `BaseFileSystemOperations` instance."
+            )
 
         self.debug = debug
         self.volume_params = volume_params
@@ -160,7 +168,9 @@ class FileSystem:
             self._file_system_ptr,
         )
         if not nt_success(result):
-            raise WinFSPyError(f"Cannot create file system: {cook_ntstatus(result).name}")
+            raise WinFSPyError(
+                f"Cannot create file system: {cook_ntstatus(result).name}"
+            )
 
         # Avoid GC on the handle
         self._operations_handle = ffi.new_handle(self.operations)
@@ -174,12 +184,18 @@ class FileSystem:
             raise FileSystemAlreadyStarted()
         self.started = True
 
-        result = lib.FspFileSystemSetMountPoint(self._file_system_ptr[0], self.mountpoint)
+        result = lib.FspFileSystemSetMountPoint(
+            self._file_system_ptr[0], self.mountpoint
+        )
         if not nt_success(result):
-            raise WinFSPyError(f"Cannot mount file system: {cook_ntstatus(result).name}")
+            raise WinFSPyError(
+                f"Cannot mount file system: {cook_ntstatus(result).name}"
+            )
         result = lib.FspFileSystemStartDispatcher(self._file_system_ptr[0], 0)
         if not nt_success(result):
-            raise WinFSPyError(f"Cannot start file system dispatcher: {cook_ntstatus(result).name}")
+            raise WinFSPyError(
+                f"Cannot start file system dispatcher: {cook_ntstatus(result).name}"
+            )
         # Since winfsp 1.12.22301 (2022-2), the file system might not be reachable as soon as the dispatcher is started.
         # Instead a request might fail with the following error:
         # [WinError 995] The I/O operation has been aborted because of either a thread exit or an application request

@@ -92,7 +92,6 @@ class BaseFileObj:
 
 
 class FileObj(BaseFileObj):
-
     allocation_unit = 4096
 
     def __init__(self, path, attributes, security_descriptor, allocation_size=0):
@@ -185,7 +184,9 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
         self._root_obj = FolderObj(
             self._root_path,
             FILE_ATTRIBUTE.FILE_ATTRIBUTE_DIRECTORY,
-            SecurityDescriptor.from_string("O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"),
+            SecurityDescriptor.from_string(
+                "O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;FA;;;WD)"
+            ),
         )
         self._entries = {self._root_path: self._root_obj}
         self._thread_lock = threading.Lock()
@@ -488,7 +489,6 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
         # Delete
         if flags & FspCleanupDelete:
-
             # Check for non-empty direcory
             if any(key.parent == file_obj.path for key in self._entries):
                 return
@@ -521,7 +521,11 @@ class InMemoryFileSystemOperations(BaseFileSystemOperations):
 
     @operation
     def overwrite(
-        self, file_context, file_attributes, replace_file_attributes: bool, allocation_size: int
+        self,
+        file_context,
+        file_attributes,
+        replace_file_attributes: bool,
+        allocation_size: int,
     ) -> None:
         if self.read_only:
             raise NTStatusMediaWriteProtected()
